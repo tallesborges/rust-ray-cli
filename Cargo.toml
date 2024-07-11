@@ -1,0 +1,26 @@
+[package]
+name = "rust-ray-cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+eframe = { version = "0.28.1",  features = [
+    "default",
+    "__screenshot", # __screenshot is so we can dump a screenshot using EFRAME_SCREENSHOT_TO
+] }
+
+# For image support:
+egui_extras = { version = "0.28.1", features = ["default", "image" ] }
+env_logger = { version = "0.11.3", default-features = false, features = [
+    "auto-color",
+    "humantime",
+] }
+hyper = { version = "1.4", features = ["full"]}
+tokio = { version = "1.38", features = ["full"]}
+serde_json = "1.0"
+chrono = "0.4"
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+bytes = "1.6.0"
