@@ -1,5 +1,5 @@
 // payload.rs
-use serde_json::{json, Value};
+use serde_json::{Value};
 use std::sync::{Arc, Mutex};
 use chrono::Local;
 
@@ -36,25 +36,28 @@ impl PayloadStorage {
 }
 
 pub fn process_payload(payload: &Value, storage: &Arc<PayloadStorage>) {
-    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-    let data = payload.to_string();
-
-    let payload_json = json!(payload);
-
-    let p_type = payload_json["type"].as_str().unwrap_or("").to_string();
-    let method = payload_json["content"]["values"]["Method"].as_str().unwrap_or("").to_string();
-    let url = payload_json["content"]["values"]["URL"].as_str().unwrap_or("").to_string();
-    let label = payload_json["content"]["values"]["label"].as_str().unwrap_or("").to_string();
-
     let entry = PayloadEntry {
-        timestamp,
-        data,
-        p_type,
-        url,
-        method,
-        label,
+        timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        data: payload.to_string(),
+        p_type: payload.get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("").to_owned(),
+        url: payload.get("content")
+            .and_then(|c| c.get("values"))
+            .and_then(|v| v.get("URL"))
+            .and_then(Value::as_str)
+            .unwrap_or("").to_owned(),
+        method: payload.get("content")
+            .and_then(|c| c.get("values"))
+            .and_then(|v| v.get("Method"))
+            .and_then(Value::as_str)
+            .unwrap_or("").to_owned(),
+        label: payload.get("content")
+            .and_then(|c| c.get("values"))
+            .and_then(|v| v.get("label"))
+            .and_then(Value::as_str)
+            .unwrap_or("").to_owned(),
     };
 
     storage.add_payload(entry);
-    // println!("Processed payload: {:?}", payload);
 }

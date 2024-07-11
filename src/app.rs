@@ -2,6 +2,7 @@
 use eframe::egui;
 use crate::payload::PayloadStorage;
 use std::sync::Arc;
+use egui_extras::{TableBuilder, Column};
 
 pub struct MyApp {
     payload_storage: Arc<PayloadStorage>,
@@ -19,20 +20,39 @@ impl eframe::App for MyApp {
             ui.heading("Payload Processing Server");
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-                egui::Grid::new("payloads_grid")
-                    .num_columns(2)
+                let table = TableBuilder::new(ui)
                     .striped(true)
-                    .show(ui, |ui| {
-                        ui.label("Timestamp");
-                        ui.label("URL");
-                        ui.end_row();
-
-                        for entry in self.payload_storage.get_payloads() {
-                            ui.label(&entry.timestamp);
-                            ui.label(&entry.url);
-                            ui.end_row();
-                        }
+                    .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                    .column(Column::auto())
+                    .column(Column::auto())
+                    .column(Column::remainder())
+                    .header(20.0, |mut header| {
+                        header.col(|ui| {
+                            ui.strong("Timestamp");
+                        });
+                        header.col(|ui| {
+                            ui.strong("Type");
+                        });
+                        header.col(|ui| {
+                            ui.strong("URL");
+                        });
                     });
+
+                table.body(|mut body| {
+                    for entry in self.payload_storage.get_payloads() {
+                        body.row(18.0, |mut row| {
+                            row.col(|ui| {
+                                ui.label(&entry.timestamp);
+                            });
+                            row.col(|ui| {
+                                ui.label(&entry.p_type);
+                            });
+                            row.col(|ui| {
+                                ui.label(&entry.url);
+                            });
+                        });
+                    }
+                });
             });
         });
 
