@@ -25,6 +25,7 @@ impl eframe::App for MyApp {
                     .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
                     .column(Column::auto())
                     .column(Column::auto())
+                    .column(Column::initial(150.0).clip(true).resizable(true))
                     .column(Column::remainder())
                     .header(20.0, |mut header| {
                         header.col(|ui| {
@@ -35,6 +36,9 @@ impl eframe::App for MyApp {
                         });
                         header.col(|ui| {
                             ui.strong("URL");
+                        });
+                        header.col(|ui| {
+                            ui.strong("HTML");
                         });
                     });
 
@@ -49,6 +53,9 @@ impl eframe::App for MyApp {
                             });
                             row.col(|ui| {
                                 ui.label(&entry.url);
+                            });
+                            row.col(|ui| {
+                                ui.label(&entry.html);
                             });
                         });
                     }

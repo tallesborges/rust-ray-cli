@@ -24,3 +24,4 @@ chrono = "0.4"
 hyper-util = { version = "0.1", features = ["full"] }
 http-body-util = "0.1"
 bytes = "1.6.0"
+tl = "0.7.8"
