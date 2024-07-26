@@ -22,12 +22,11 @@ impl MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("table_panel")
-            .max_width(500.0)
             .show(ctx, |ui| {
                 ui.heading("Payload Processing Server");
 
                 StripBuilder::new(ui)
-                    .size(Size::remainder().at_least(250.0)) // for the table
+                    .size(Size::remainder()) // for the table
                     .vertical(|mut strip| {
                         strip.cell(|ui| {
                             egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -73,6 +72,7 @@ impl MyApp {
 
 impl MyApp {
     fn render_table(&mut self, ui: &mut egui::Ui) {
+        let available_height = ui.available_height();
         let table = TableBuilder::new(ui)
             .striped(true)
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
@@ -80,6 +80,7 @@ impl MyApp {
             .column(Column::auto())
             .column(Column::auto())
             .column(Column::remainder())
+            .max_scroll_height(available_height)
             .header(20.0, |mut header| {
                 header.col(|ui| {
                     ui.strong("Timestamp");
