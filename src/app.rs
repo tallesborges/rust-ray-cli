@@ -1,9 +1,9 @@
-use eframe::egui;
 use crate::payload::PayloadEntry;
 use crate::payload::PayloadStorage;
+use eframe::egui;
+use eframe::egui::Sense;
+use egui_extras::{Column, Size, StripBuilder, TableBuilder};
 use std::sync::Arc;
-use eframe::egui::{Sense, TextWrapMode};
-use egui_extras::{TableBuilder, Column, StripBuilder, Size};
 
 pub struct MyApp {
     payload_storage: Arc<PayloadStorage>,
@@ -21,20 +21,19 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::left("table_panel")
-            .show(ctx, |ui| {
-                ui.heading("Payload Processing Server");
+        egui::SidePanel::left("table_panel").show(ctx, |ui| {
+            ui.heading("Payload Processing Server");
 
-                StripBuilder::new(ui)
-                    .size(Size::remainder()) // for the table
-                    .vertical(|mut strip| {
-                        strip.cell(|ui| {
-                            egui::ScrollArea::horizontal().show(ui, |ui| {
-                                self.render_table(ui);
-                            });
+            StripBuilder::new(ui)
+                .size(Size::remainder()) // for the table
+                .vertical(|mut strip| {
+                    strip.cell(|ui| {
+                        egui::ScrollArea::horizontal().show(ui, |ui| {
+                            self.render_table(ui);
                         });
                     });
-            });
+                });
+        });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("HTML Preview");
@@ -49,7 +48,9 @@ impl MyApp {
 
         match selected_entry {
             Some(entry) => self.display_entry_details(ui, &entry),
-            None => { ui.label("Select a row to view HTML preview"); }
+            None => {
+                ui.label("Select a row to view HTML preview");
+            }
         }
     }
 
@@ -93,26 +94,30 @@ impl MyApp {
                 });
             });
 
-        table.body(|mut body| {
+        table.body(|body| {
             let payloads = self.payload_storage.get_payloads();
-            body.rows(18.0, self.payload_storage.get_payloads().len(), |mut row|{
-                let entry = payloads.get(row.index()).unwrap();
-                row.set_selected(self.selected_row == Some(row.index()));
+            body.rows(
+                18.0,
+                self.payload_storage.get_payloads().len(),
+                |mut row| {
+                    let entry = payloads.get(row.index()).unwrap();
+                    row.set_selected(self.selected_row == Some(row.index()));
 
-                row.col(|ui| {
-                    ui.label(entry.timestamp.as_str());
-                });
-                row.col(|ui| {
-                    ui.label(entry.label.as_str());
-                });
-                row.col(|ui| {
-                    ui.label(entry.url.as_str());
-                });
+                    row.col(|ui| {
+                        ui.label(entry.timestamp.as_str());
+                    });
+                    row.col(|ui| {
+                        ui.label(entry.label.as_str());
+                    });
+                    row.col(|ui| {
+                        ui.label(entry.url.as_str());
+                    });
 
-                if row.response().clicked() {
-                    self.selected_row = Some(row.index());
-                }
-            });
+                    if row.response().clicked() {
+                        self.selected_row = Some(row.index());
+                    }
+                },
+            );
         });
     }
 }
