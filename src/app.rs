@@ -24,6 +24,11 @@ impl eframe::App for MyApp {
         egui::SidePanel::left("table_panel").show(ctx, |ui| {
             ui.heading("Payload Processing Server");
 
+            if ui.button("Clear").clicked() {
+                self.payload_storage.clear_payloads();
+                self.selected_row = None;
+            }
+
             StripBuilder::new(ui)
                 .size(Size::remainder()) // for the table
                 .vertical(|mut strip| {

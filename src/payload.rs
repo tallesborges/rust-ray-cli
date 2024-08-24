@@ -34,6 +34,11 @@ impl PayloadStorage {
         let payloads = self.payloads.lock().unwrap();
         payloads.clone()
     }
+
+    pub fn clear_payloads(&self) {
+        let mut payloads = self.payloads.lock().unwrap();
+        payloads.clear();
+    }
 }
 
 pub fn parse_html(html: &str) -> String {
