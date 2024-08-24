@@ -30,7 +30,7 @@ impl eframe::App for MyApp {
             }
 
             StripBuilder::new(ui)
-                .size(Size::remainder()) // for the table
+                .size(Size::remainder())
                 .vertical(|mut strip| {
                     strip.cell(|ui| {
                         egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -41,37 +41,13 @@ impl eframe::App for MyApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("HTML Preview");
-            self.render_html_preview(ui);
-        });
-    }
-}
+            ui.heading("Preview");
 
-impl MyApp {
-    fn render_html_preview(&self, ui: &mut egui::Ui) {
-        let selected_entry = self.get_selected_entry();
-
-        match selected_entry {
-            Some(entry) => self.display_entry_details(ui, &entry),
-            None => {
+            if let Some(index) = self.selected_row {
+                self.payload_storage.display_details(ui, index);
+            } else {
                 ui.label("Select a row to view HTML preview");
             }
-        }
-    }
-
-    fn get_selected_entry(&self) -> Option<PayloadEntry> {
-        self.selected_row
-            .and_then(|index| self.payload_storage.get_payloads().get(index).cloned())
-    }
-
-    fn display_entry_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.label("URL:");
-        ui.label(&entry.url);
-        ui.label("Method:");
-        ui.label(&entry.method);
-        ui.label("HTML Content:");
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.label(&entry.html);
         });
     }
 }
@@ -101,28 +77,26 @@ impl MyApp {
 
         table.body(|body| {
             let payloads = self.payload_storage.get_payloads();
-            body.rows(
-                18.0,
-                self.payload_storage.get_payloads().len(),
-                |mut row| {
-                    let entry = payloads.get(row.index()).unwrap();
-                    row.set_selected(self.selected_row == Some(row.index()));
+            body.rows(18.0, payloads.len(), |mut row| {
+                let index = row.index();
+                row.set_selected(self.selected_row == Some(index));
 
-                    row.col(|ui| {
-                        ui.label(entry.timestamp.as_str());
-                    });
-                    row.col(|ui| {
-                        ui.label(entry.label.as_str());
-                    });
-                    row.col(|ui| {
-                        ui.label(entry.url.as_str());
-                    });
+                let entry = &payloads[index];
 
-                    if row.response().clicked() {
-                        self.selected_row = Some(row.index());
-                    }
-                },
-            );
+                row.col(|ui| {
+                    ui.label(&entry.timestamp);
+                });
+                row.col(|ui| {
+                    ui.label(&entry.label);
+                });
+                row.col(|ui| {
+                    ui.label(&entry.url);
+                });
+
+                if row.response().clicked() {
+                    self.selected_row = Some(index);
+                }
+            });
         });
     }
 }

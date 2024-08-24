@@ -1,5 +1,6 @@
 // payload.rs
 use chrono::Local;
+use eframe::egui;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 
@@ -38,6 +39,19 @@ impl PayloadStorage {
     pub fn clear_payloads(&self) {
         let mut payloads = self.payloads.lock().unwrap();
         payloads.clear();
+    }
+
+    pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
+        if let Some(entry) = self.get_payloads().get(index) {
+            ui.label("URL:");
+            ui.label(&entry.url);
+            ui.label("Method:");
+            ui.label(&entry.method);
+            ui.label("HTML Content:");
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.label(&entry.html);
+            });
+        }
     }
 }
 
