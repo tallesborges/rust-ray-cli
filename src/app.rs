@@ -64,13 +64,13 @@ impl MyApp {
             .max_scroll_height(available_height)
             .header(20.0, |mut header| {
                 header.col(|ui| {
-                    ui.strong("Timestamp");
+                    ui.strong("timestamp");
                 });
                 header.col(|ui| {
-                    ui.strong("Label");
+                    ui.strong("label");
                 });
                 header.col(|ui| {
-                    ui.strong("Value");
+                    ui.strong("value");
                 });
             });
 
@@ -83,13 +83,13 @@ impl MyApp {
                 let entry = &payloads[index];
 
                 row.col(|ui| {
-                    ui.label(&entry.timestamp);
+                    ui.add(egui::Label::new(&entry.timestamp).selectable(false));
                 });
                 row.col(|ui| {
-                    ui.label(&entry.label);
+                    ui.add(egui::Label::new(&entry.label).selectable(false));
                 });
                 row.col(|ui| {
-                    ui.label(&entry.url);
+                    ui.add(egui::Label::new(&entry.url).selectable(false));
                 });
 
                 if row.response().clicked() {
