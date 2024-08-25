@@ -75,11 +75,11 @@ impl PayloadType for TablePayload {
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.label("URL:");
+        ui.strong("URL:");
         ui.label(&entry.url);
-        ui.label("Method:");
+        ui.strong("Method:");
         ui.label(&entry.method);
-        ui.label("HTML Content:");
+        ui.strong("HTML Content:");
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.label(&entry.html);
         });
@@ -93,7 +93,7 @@ impl PayloadType for LogPayload {
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.label("Log Content:");
+        ui.strong("Log Content:");
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.label(&entry.html);
         });
@@ -107,7 +107,7 @@ impl PayloadType for ApplicationLogPayload {
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.label("Application Log Content:");
+        ui.strong("Application Log Content:");
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.label(&entry.html);
         });
