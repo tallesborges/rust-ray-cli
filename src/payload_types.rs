@@ -4,6 +4,23 @@ use chrono::Local;
 use eframe::egui;
 use serde_json::Value;
 
+fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
+    PayloadEntry {
+        timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        data: payload.to_string(),
+        p_type: p_type.to_string(),
+        html: payload
+            .get("content")
+            .and_then(|v| v.get("value"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        url: String::new(),
+        method: String::new(),
+        label: String::new(),
+    }
+}
+
 pub trait PayloadType: Send + Sync {
     fn process(&self, payload: &Value) -> PayloadEntry;
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry);
@@ -23,48 +40,42 @@ pub struct PayloadEntry {
 pub struct TablePayload;
 impl PayloadType for TablePayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
-        PayloadEntry {
-            timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-            data: payload.to_string(),
-            p_type: "table".to_string(),
-            html: {
-                let content = payload.get("content").and_then(|c| c.get("values"));
+        let mut entry = process_common_payload(payload, "table");
 
-                let is_request = content
-                    .and_then(|v| v.get("Method"))
-                    .and_then(Value::as_str)
-                    .map_or(false, |m| m == "GET" || m == "POST");
+        if let Some(content) = payload.get("content").and_then(|c| c.get("values")) {
+            let is_request = content
+                .get("Method")
+                .and_then(Value::as_str)
+                .map_or(false, |m| m == "GET" || m == "POST");
 
-                let field_name = if is_request { "Data" } else { "Body" };
+            let field_name = if is_request { "Data" } else { "Body" };
 
-                content
-                    .and_then(|v| v.get(field_name))
-                    .and_then(Value::as_str)
-                    .map(parse_html)
-                    .unwrap_or_default()
-            },
-            url: payload
-                .get("content")
-                .and_then(|c| c.get("values"))
-                .and_then(|v| v.get("URL"))
+            entry.html = content
+                .get(field_name)
+                .and_then(Value::as_str)
+                .map(parse_html)
+                .unwrap_or_default();
+
+            entry.url = content
+                .get("URL")
                 .and_then(Value::as_str)
                 .unwrap_or("")
-                .to_owned(),
-            method: payload
-                .get("content")
-                .and_then(|c| c.get("values"))
-                .and_then(|v| v.get("Method"))
+                .to_owned();
+
+            entry.method = content
+                .get("Method")
                 .and_then(Value::as_str)
                 .unwrap_or("")
-                .to_owned(),
-            label: payload
-                .get("content")
-                .and_then(|c| c.get("values"))
-                .and_then(|v| v.get("label"))
+                .to_owned();
+
+            entry.label = content
+                .get("label")
                 .and_then(Value::as_str)
                 .unwrap_or("")
-                .to_owned(),
+                .to_owned();
         }
+
+        entry
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
@@ -82,20 +93,7 @@ impl PayloadType for TablePayload {
 pub struct LogPayload;
 impl PayloadType for LogPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
-        PayloadEntry {
-            timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-            data: payload.to_string(),
-            p_type: "log".to_string(),
-            html: payload
-                .get("content")
-                .and_then(|v| v.get("value"))
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
-            url: "".to_string(),
-            method: "".to_string(),
-            label: "".to_string(),
-        }
+        process_common_payload(payload, "log")
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
@@ -109,20 +107,7 @@ impl PayloadType for LogPayload {
 pub struct ApplicationLogPayload;
 impl PayloadType for ApplicationLogPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
-        PayloadEntry {
-            timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-            data: payload.to_string(),
-            p_type: "application_log".to_string(),
-            html: payload
-                .get("content")
-                .and_then(|v| v.get("value"))
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
-            url: "".to_string(),
-            method: "".to_string(),
-            label: "".to_string(),
-        }
+        process_common_payload(payload, "application_log")
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
