@@ -1,12 +1,12 @@
 // main.rs
 mod app;
-mod payload;
+mod payload_storage;
 mod payload_types;
 mod server;
 
 use app::MyApp;
 use eframe::NativeOptions;
-use payload::PayloadStorage;
+use payload_storage::PayloadStorage;
 use server::start_server;
 use std::sync::Arc;
 

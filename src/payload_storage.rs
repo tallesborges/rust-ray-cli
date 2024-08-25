@@ -1,4 +1,4 @@
-// payload.rs
+// payload_storage.rs
 use crate::payload_types::{PayloadEntry, PayloadType, PayloadTypeFactory};
 use eframe::egui;
 use serde_json::Value;
