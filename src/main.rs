@@ -1,13 +1,14 @@
 // main.rs
 mod app;
-mod server;
 mod payload;
+mod payload_types;
+mod server;
 
 use app::MyApp;
-use server::start_server;
-use payload::PayloadStorage;
-use std::sync::Arc;
 use eframe::NativeOptions;
+use payload::PayloadStorage;
+use server::start_server;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> eframe::Result<()> {

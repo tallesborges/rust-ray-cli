@@ -1,4 +1,3 @@
-use crate::payload::PayloadEntry;
 use crate::payload::PayloadStorage;
 use eframe::egui;
 use eframe::egui::Sense;

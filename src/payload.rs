@@ -1,39 +1,36 @@
 // payload.rs
-use chrono::Local;
+use crate::payload_types::{PayloadEntry, PayloadType, PayloadTypeFactory};
 use eframe::egui;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Debug)]
-pub struct PayloadEntry {
-    pub timestamp: String,
-    pub data: String,
-    pub p_type: String,
-    pub html: String,
-    pub url: String,
-    pub method: String,
-    pub label: String,
-}
-
 pub struct PayloadStorage {
-    payloads: Mutex<Vec<PayloadEntry>>,
+    payloads: Mutex<Vec<(PayloadEntry, Arc<dyn PayloadType>)>>,
+    factory: PayloadTypeFactory,
 }
 
 impl PayloadStorage {
     pub fn new() -> Self {
         Self {
             payloads: Mutex::new(Vec::new()),
+            factory: PayloadTypeFactory::new(),
         }
     }
 
-    pub fn add_payload(&self, entry: PayloadEntry) {
-        let mut payloads = self.payloads.lock().unwrap();
-        payloads.push(entry);
+    pub fn add_payload(&self, payload: &Value) {
+        let payload_type = payload.get("type").and_then(Value::as_str).unwrap_or("");
+        if let Some(processor) = self.factory.get_type(payload_type) {
+            let entry = processor.process(payload);
+            let mut payloads = self.payloads.lock().unwrap();
+            payloads.push((entry, processor));
+        } else {
+            eprintln!("Unknown payload type: {}", payload_type);
+        }
     }
 
     pub fn get_payloads(&self) -> Vec<PayloadEntry> {
         let payloads = self.payloads.lock().unwrap();
-        payloads.clone()
+        payloads.iter().map(|(entry, _)| entry.clone()).collect()
     }
 
     pub fn clear_payloads(&self) {
@@ -42,101 +39,13 @@ impl PayloadStorage {
     }
 
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
-        if let Some(entry) = self.get_payloads().get(index) {
-            ui.label("URL:");
-            ui.label(&entry.url);
-            ui.label("Method:");
-            ui.label(&entry.method);
-            ui.label("HTML Content:");
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.label(&entry.html);
-            });
+        let payloads = self.payloads.lock().unwrap();
+        if let Some((entry, processor)) = payloads.get(index) {
+            processor.display_details(ui, entry);
         }
-    }
-}
-
-pub fn parse_html(html: &str) -> String {
-    let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
-    let parser = dom.parser();
-
-    dom.query_selector("pre")
-        .and_then(|mut e| e.next())
-        .and_then(|n| n.get(parser))
-        .map(|e| e.inner_text(parser))
-        .map(|s| s.to_string())
-        .unwrap_or(html.to_string())
-}
-
-pub fn get_html(payload: &Value) -> String {
-    let content = payload.get("content").and_then(|c| c.get("values"));
-
-    match payload.get("type").and_then(Value::as_str).unwrap_or("") {
-        "table" => {
-            let is_request = content
-                .and_then(|v| v.get("Method"))
-                .and_then(Value::as_str)
-                .map_or(false, |m| m == "GET" || m == "POST");
-
-            let field_name = if is_request { "Data" } else { "Body" };
-
-            content
-                .and_then(|v| v.get(field_name))
-                .and_then(Value::as_str)
-                .map(parse_html)
-                .unwrap_or_default()
-        }
-        "log" => content
-            .and_then(|v| v.as_array())
-            .and_then(|arr| arr.first())
-            .and_then(Value::as_str)
-            .map(parse_html)
-            .unwrap_or_default(),
-        "application_log" => payload
-            .get("content")
-            .and_then(|v| v.get("value"))
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string(),
-        _ => String::new(),
     }
 }
 
 pub fn process_payload(payload: &Value, storage: &Arc<PayloadStorage>) {
-    let entry = PayloadEntry {
-        timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-        data: payload.to_string(),
-        p_type: payload
-            .get("type")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_owned(),
-        html: get_html(payload),
-        url: payload
-            .get("content")
-            .and_then(|c| c.get("values"))
-            .and_then(|v| v.get("URL"))
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_owned(),
-        method: payload
-            .get("content")
-            .and_then(|c| c.get("values"))
-            .and_then(|v| v.get("Method"))
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_owned(),
-        label: payload
-            .get("content")
-            .and_then(|c| c.get("values"))
-            .and_then(|v| v.get("label"))
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_owned(),
-    };
-
-    eprintln!("Parsed Type: {}", entry.p_type);
-    eprintln!("Parsed URL: {}", entry.url);
-    eprintln!("Parsed HTML: {}", entry.html);
-
-    storage.add_payload(entry);
+    storage.add_payload(payload);
 }
