@@ -7,8 +7,6 @@ use serde_json::Value;
 fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
     PayloadEntry {
         timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-        data: payload.to_string(),
-        p_type: p_type.to_string(),
         html: payload
             .get("content")
             .and_then(|v| v.get("value"))
@@ -29,8 +27,6 @@ pub trait PayloadType: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct PayloadEntry {
     pub timestamp: String,
-    pub data: String,
-    pub p_type: String,
     pub html: String,
     pub url: String,
     pub method: String,
