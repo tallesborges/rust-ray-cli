@@ -17,7 +17,7 @@ fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
             .to_string(),
         url: String::new(),
         method: String::new(),
-        label: String::new(),
+        label: p_type.to_string(),
     }
 }
 
@@ -68,11 +68,11 @@ impl PayloadType for TablePayload {
                 .unwrap_or("")
                 .to_owned();
 
-            entry.label = content
-                .get("label")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_owned();
+            entry.label = if is_request {
+                "Request".to_string()
+            } else {
+                "Response".to_string()
+            };
         }
 
         entry
