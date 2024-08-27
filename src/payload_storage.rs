@@ -19,6 +19,7 @@ impl PayloadStorage {
     pub fn add_payload(&self, payload: &Value) {
         let payload_type = payload.get("type").and_then(Value::as_str).unwrap_or("");
         println!("Processing payload type: {}", payload_type);
+        println!("Payload: {}", payload);
         if let Some(processor) = self.factory.get_type(payload_type) {
             let entry = processor.process(payload);
             let mut payloads = self.payloads.lock().unwrap();

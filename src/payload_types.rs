@@ -46,11 +46,7 @@ impl PayloadType for TablePayload {
 
             let field_name = if is_request { "Data" } else { "Body" };
 
-            entry.html = content
-                .get(field_name)
-                .and_then(Value::as_str)
-                .map(parse_html)
-                .unwrap_or_default();
+            entry.html = serde_json::to_string_pretty(payload).unwrap_or_default();
 
             entry.url = content
                 .get("URL")
