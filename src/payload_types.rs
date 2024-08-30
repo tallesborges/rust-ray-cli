@@ -80,7 +80,15 @@ impl PayloadType for TablePayload {
         ui.label(&entry.method);
         ui.strong("HTML Content:");
         egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.label(&entry.html);
+            ui.add(
+                egui::TextEdit::multiline(&mut entry.html.clone())
+                    .code_editor()
+                    .desired_width(f32::INFINITY)
+                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                    .code_editor()
+                    .desired_rows(10)
+                    .lock_focus(true),
+            );
         });
     }
 }
@@ -137,16 +145,4 @@ impl PayloadTypeFactory {
     pub fn get_type(&self, payload_type: &str) -> Option<Arc<dyn PayloadType>> {
         self.types.get(payload_type).cloned()
     }
-}
-
-pub fn parse_html(html: &str) -> String {
-    let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
-    let parser = dom.parser();
-
-    dom.query_selector("pre")
-        .and_then(|mut e| e.next())
-        .and_then(|n| n.get(parser))
-        .map(|e| e.inner_text(parser))
-        .map(|s| s.to_string())
-        .unwrap_or(html.to_string())
 }
