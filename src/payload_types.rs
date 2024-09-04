@@ -115,6 +115,37 @@ impl PayloadType for LogPayload {
     }
 }
 
+pub struct QueryPayload;
+impl PayloadType for QueryPayload {
+    fn process(&self, payload: &Value) -> PayloadEntry {
+        let mut entry = process_common_payload(payload, "query");
+
+        entry.html = payload
+            .get("content")
+            .and_then(|v| v.get("sql"))
+            .and_then(|v| serde_json::to_string_pretty(v).ok())
+            .unwrap_or_default()
+            .to_string();
+
+        entry
+    }
+
+    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
+        ui.strong("Executed query:");
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.add(
+                egui::TextEdit::multiline(&mut entry.html.clone())
+                    .code_editor()
+                    .desired_width(f32::INFINITY)
+                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                    .code_editor()
+                    .desired_rows(10)
+                    .lock_focus(true),
+            );
+        });
+    }
+}
+
 pub struct ApplicationLogPayload;
 impl PayloadType for ApplicationLogPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
@@ -154,6 +185,10 @@ impl PayloadTypeFactory {
         types.insert(
             "application_log".to_string(),
             Arc::new(ApplicationLogPayload) as Arc<dyn PayloadType>,
+        );
+        types.insert(
+            "executed_query".to_string(),
+            Arc::new(QueryPayload) as Arc<dyn PayloadType>,
         );
         Self { types }
     }
