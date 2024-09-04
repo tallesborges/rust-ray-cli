@@ -9,8 +9,8 @@ fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
         timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
         html: payload
             .get("content")
-            .and_then(|v| v.get("value"))
-            .and_then(Value::as_str)
+            .and_then(|v| v.get("values"))
+            .and_then(|v| serde_json::to_string_pretty(v).ok())
             .unwrap_or_default()
             .to_string(),
         url: String::new(),
@@ -102,7 +102,15 @@ impl PayloadType for LogPayload {
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Log Content:");
         egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.label(&entry.html);
+            ui.add(
+                egui::TextEdit::multiline(&mut entry.html.clone())
+                    .code_editor()
+                    .desired_width(f32::INFINITY)
+                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                    .code_editor()
+                    .desired_rows(10)
+                    .lock_focus(true),
+            );
         });
     }
 }
@@ -116,7 +124,15 @@ impl PayloadType for ApplicationLogPayload {
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Application Log Content:");
         egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.label(&entry.html);
+            ui.add(
+                egui::TextEdit::multiline(&mut entry.html.clone())
+                    .code_editor()
+                    .desired_width(f32::INFINITY)
+                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                    .code_editor()
+                    .desired_rows(10)
+                    .lock_focus(true),
+            );
         });
     }
 }
