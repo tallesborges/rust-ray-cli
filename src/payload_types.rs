@@ -1,3 +1,4 @@
+use core::f32;
 use std::{collections::HashMap, sync::Arc};
 
 use chrono::Local;
@@ -107,7 +108,27 @@ impl PayloadType for LogPayload {
                     .code_editor()
                     .desired_width(f32::INFINITY)
                     .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                    .desired_rows(10)
+                    .lock_focus(true),
+            );
+        });
+    }
+}
+
+pub struct ExceptionPayload;
+impl PayloadType for ExceptionPayload {
+    fn process(&self, payload: &Value) -> PayloadEntry {
+        process_common_payload(payload, "exception")
+    }
+
+    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
+        ui.strong("Exception:");
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.add(
+                egui::TextEdit::multiline(&mut entry.html.clone())
                     .code_editor()
+                    .desired_width(f32::INFINITY)
+                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
                     .desired_rows(10)
                     .lock_focus(true),
             );
@@ -193,6 +214,10 @@ impl PayloadTypeFactory {
         types.insert(
             "executed_query".to_string(),
             Arc::new(QueryPayload) as Arc<dyn PayloadType>,
+        );
+        types.insert(
+            "execption".to_string(),
+            Arc::new(ExceptionPayload) as Arc<dyn PayloadType>,
         );
         Self { types }
     }
