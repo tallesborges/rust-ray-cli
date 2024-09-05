@@ -149,7 +149,11 @@ impl PayloadType for QueryPayload {
 pub struct ApplicationLogPayload;
 impl PayloadType for ApplicationLogPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
-        process_common_payload(payload, "application_log")
+        let mut entry = process_common_payload(payload, "application_log");
+
+        entry.html = serde_json::to_string_pretty(payload).unwrap_or_default();
+
+        entry
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
