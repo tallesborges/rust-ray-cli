@@ -20,6 +20,33 @@ fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
     }
 }
 
+fn display_code(ui: &mut egui::Ui, content: &str, language: &str) {
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        let theme = egui_extras::syntax_highlighting::CodeTheme::from_style(&ui.ctx().style());
+        let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
+            let mut layout_job = egui_extras::syntax_highlighting::highlight(
+                ui.ctx(),
+                ui.style(),
+                &theme,
+                string,
+                language,
+            );
+            layout_job.wrap.max_width = wrap_width;
+            ui.fonts(|f| f.layout_job(layout_job))
+        };
+
+        ui.add(
+            egui::TextEdit::multiline(&mut content.clone())
+                .code_editor()
+                .desired_width(f32::INFINITY)
+                .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                .desired_rows(10)
+                .layouter(&mut layouter)
+                .lock_focus(true),
+        );
+    });
+}
+
 pub trait PayloadType: Send + Sync {
     fn process(&self, payload: &Value) -> PayloadEntry;
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry);
@@ -80,17 +107,7 @@ impl PayloadType for TablePayload {
         ui.strong("Method:");
         ui.label(&entry.method);
         ui.strong("HTML Content:");
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut entry.html.clone())
-                    .code_editor()
-                    .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
-                    .code_editor()
-                    .desired_rows(10)
-                    .lock_focus(true),
-            );
-        });
+        display_code(ui, &entry.html, "json");
     }
 }
 
@@ -102,16 +119,7 @@ impl PayloadType for LogPayload {
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Log Content:");
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut entry.html.clone())
-                    .code_editor()
-                    .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
-                    .desired_rows(10)
-                    .lock_focus(true),
-            );
-        });
+        display_code(ui, &entry.html, "json");
     }
 }
 
@@ -131,16 +139,7 @@ impl PayloadType for ExceptionPayload {
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Exception:");
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut entry.html.clone())
-                    .code_editor()
-                    .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
-                    .desired_rows(10)
-                    .lock_focus(true),
-            );
-        });
+        display_code(ui, &entry.html, "json");
     }
 }
 
@@ -161,17 +160,7 @@ impl PayloadType for QueryPayload {
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Executed query:");
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut entry.html.clone())
-                    .code_editor()
-                    .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
-                    .code_editor()
-                    .desired_rows(10)
-                    .lock_focus(true),
-            );
-        });
+        display_code(ui, &entry.html, "sql");
     }
 }
 
@@ -187,19 +176,10 @@ impl PayloadType for ApplicationLogPayload {
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Application Log Content:");
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut entry.html.clone())
-                    .code_editor()
-                    .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace.resolve(ui.style()))
-                    .code_editor()
-                    .desired_rows(10)
-                    .lock_focus(true),
-            );
-        });
+        display_code(ui, &entry.html, "json");
     }
 }
+
 pub struct PayloadTypeFactory {
     types: HashMap<String, Arc<dyn PayloadType>>,
 }
