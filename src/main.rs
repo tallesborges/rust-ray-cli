@@ -1,7 +1,7 @@
 // main.rs
 mod app;
 mod payload_storage;
-mod payload_types;
+mod payloads;
 mod server;
 
 use app::MyApp;
