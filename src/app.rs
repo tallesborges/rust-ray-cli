@@ -1,16 +1,16 @@
-use crate::payload_storage::PayloadStorage;
+use crate::event_storage::EventStorage;
 use eframe::egui;
 use eframe::egui::Sense;
 use egui_extras::{Column, Size, StripBuilder, TableBuilder};
 use std::sync::Arc;
 
 pub struct MyApp {
-    payload_storage: Arc<PayloadStorage>,
+    payload_storage: Arc<EventStorage>,
     selected_row: Option<usize>,
 }
 
 impl MyApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>, payload_storage: Arc<PayloadStorage>) -> Self {
+    pub fn new(_cc: &eframe::CreationContext<'_>, payload_storage: Arc<EventStorage>) -> Self {
         Self {
             payload_storage,
             selected_row: None,
@@ -24,7 +24,7 @@ impl eframe::App for MyApp {
             ui.heading("Payload Processing Server");
 
             if ui.button("Clear").clicked() {
-                self.payload_storage.clear_payloads();
+                self.payload_storage.clear_events();
                 self.selected_row = None;
             }
 
@@ -75,7 +75,7 @@ impl MyApp {
             });
 
         table.body(|body| {
-            let payloads = self.payload_storage.get_payloads();
+            let payloads = self.payload_storage.get_events();
             body.rows(18.0, payloads.len(), |mut row| {
                 let index = row.index();
                 row.set_selected(self.selected_row == Some(index));

@@ -1,5 +1,5 @@
 // server.rs
-use crate::payload_storage::{process_payload, PayloadStorage};
+use crate::event_storage::{process_event, EventStorage};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::server::conn::http1;
@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 
 pub async fn start_server(
-    payload_storage: Arc<PayloadStorage>,
+    event_storage: Arc<EventStorage>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = SocketAddr::from(([127, 0, 0, 1], 23517));
     let listener = TcpListener::bind(addr).await?;
@@ -21,7 +21,7 @@ pub async fn start_server(
     loop {
         let (stream, _) = listener.accept().await?;
         let io = TokioIo::new(stream);
-        let storage = Arc::clone(&payload_storage);
+        let storage = Arc::clone(&event_storage);
 
         tokio::task::spawn(async move {
             let service = service_fn(move |req| handle_request(req, Arc::clone(&storage)));
@@ -35,7 +35,7 @@ pub async fn start_server(
 
 async fn handle_request(
     req: Request<Incoming>,
-    payload_storage: Arc<PayloadStorage>,
+    event_storage: Arc<EventStorage>,
 ) -> Result<Response<Full<Bytes>>, hyper::Error> {
     match (req.method(), req.uri().path()) {
         (&hyper::Method::GET, "/_availability_check") => Ok(Response::builder()
@@ -78,7 +78,7 @@ async fn handle_request(
 
             if let Some(payloads_array) = payload.get("payloads").and_then(Value::as_array) {
                 for p in payloads_array {
-                    process_payload(p, &payload_storage);
+                    process_event(p, &event_storage);
                 }
                 Ok(Response::new(Full::new(Bytes::from("OK"))))
             } else {

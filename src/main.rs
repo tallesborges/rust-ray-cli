@@ -1,19 +1,19 @@
 // main.rs
 mod app;
-mod payload_storage;
-mod payloads;
+mod event_storage;
+mod events;
 mod server;
 
 use app::MyApp;
 use eframe::NativeOptions;
-use payload_storage::PayloadStorage;
+use event_storage::EventStorage;
 use server::start_server;
 use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> eframe::Result<()> {
-    let payload_storage = Arc::new(PayloadStorage::new());
-    let server_storage = Arc::clone(&payload_storage);
+    let event_storage = Arc::new(EventStorage::new());
+    let server_storage = Arc::clone(&event_storage);
 
     // Spawn the HTTP server
     tokio::spawn(async move {
@@ -31,6 +31,6 @@ async fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Payload Processing Server",
         options,
-        Box::new(|cc| Ok(Box::new(MyApp::new(cc, payload_storage)))),
+        Box::new(|cc| Ok(Box::new(MyApp::new(cc, event_storage)))),
     )
 }
