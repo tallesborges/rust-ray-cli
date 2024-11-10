@@ -5,7 +5,7 @@ pub struct TableEvent;
 
 impl EventProcessor for TableEvent {
     fn process(&self, payload: &Value) -> EventEntry {
-        let mut entry = process_common_event(payload, "table");
+        let mut entry = process_common_event("table");
 
         if let Some(content) = payload.get("content").and_then(|c| c.get("values")) {
             let is_request = content

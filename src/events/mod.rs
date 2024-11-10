@@ -9,7 +9,7 @@ mod table;
 
 pub use factory::EventTypeFactory;
 
-pub fn process_common_event(payload: &Value, p_type: &str) -> EventEntry {
+pub fn process_common_event(p_type: &str) -> EventEntry {
     EventEntry {
         timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
         label: p_type.to_string(),

@@ -5,7 +5,7 @@ pub struct ExceptionEvent;
 
 impl EventProcessor for ExceptionEvent {
     fn process(&self, payload: &Value) -> EventEntry {
-        let mut entry = process_common_event(payload, "exception");
+        let mut entry = process_common_event("exception");
         entry.content = payload
             .get("content")
             .and_then(|v| serde_json::to_string_pretty(v).ok())

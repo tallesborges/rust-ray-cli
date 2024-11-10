@@ -5,7 +5,7 @@ pub struct QueryEvent;
 
 impl EventProcessor for QueryEvent {
     fn process(&self, payload: &Value) -> EventEntry {
-        let mut entry = process_common_event(payload, "query");
+        let mut entry = process_common_event("query");
         entry.content = payload
             .get("content")
             .and_then(|v| v.get("sql"))
