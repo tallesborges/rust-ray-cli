@@ -1,0 +1,8 @@
+[package]
+name = "event-query"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core = { path = "../core" }
+serde_json = { workspace = true }
