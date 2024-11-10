@@ -12,7 +12,7 @@ impl PayloadType for QueryPayload {
             .and_then(|v| v.get("sql"))
             .and_then(|v| serde_json::to_string_pretty(v).ok())
             .unwrap_or_default();
+        entry.content_type = "sql".to_string();
         entry
     }
-
 }

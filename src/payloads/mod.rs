@@ -17,6 +17,7 @@ pub fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
         label: p_type.to_string(),
         description: String::new(),
         content: String::new(),
+        content_type: "json".to_string(),
     }
 }
 
@@ -51,37 +52,11 @@ pub trait PayloadType: Send + Sync {
     fn process(&self, payload: &Value) -> PayloadEntry;
 }
 
-pub fn display_table_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
-    ui.strong("URL:");
-    ui.label(&entry.description);
-    ui.strong("Content:");
-    display_code(ui, &entry.content, "json");
-}
-
-pub fn display_log_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
-    ui.strong("Log Content:");
-    display_code(ui, &entry.content, "json");
-}
-
-pub fn display_application_log_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
-    ui.strong("Application Log:");
-    display_code(ui, &entry.content, "json");
-}
-
-pub fn display_query_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
-    ui.strong("SQL Query:");
-    display_code(ui, &entry.content, "sql");
-}
-
-pub fn display_exception_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
-    ui.strong("Exception Details:");
-    display_code(ui, &entry.content, "json");
-}
-
 #[derive(Clone, Debug)]
 pub struct PayloadEntry {
     pub timestamp: String,
     pub label: String,
     pub description: String,
     pub content: String,
+    pub content_type: String,
 }
