@@ -1,4 +1,4 @@
-use crate::payloads::types::{PayloadEntry, PayloadType, PayloadTypeFactory};
+use crate::payloads::{PayloadEntry, PayloadType, PayloadTypeFactory};
 use eframe::egui;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
