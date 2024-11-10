@@ -1,37 +1,37 @@
-use crate::payloads::{PayloadEntry, PayloadType, PayloadTypeFactory};
+use crate::events::{EventEntry, EventType, EventTypeFactory};
 use eframe::egui;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 
-pub struct PayloadStorage {
-    payloads: Mutex<Vec<(PayloadEntry, Arc<dyn PayloadType>)>>,
-    factory: PayloadTypeFactory,
+pub struct EventStorage {
+    events: Mutex<Vec<(EventEntry, Arc<dyn EventType>)>>,
+    factory: EventTypeFactory,
 }
 
-impl PayloadStorage {
+impl EventStorage {
     pub fn new() -> Self {
         Self {
-            payloads: Mutex::new(Vec::new()),
-            factory: PayloadTypeFactory::new(),
+            events: Mutex::new(Vec::new()),
+            factory: EventTypeFactory::new(),
         }
     }
 
-    pub fn add_payload(&self, payload: &Value) {
-        let payload_type = payload.get("type").and_then(Value::as_str).unwrap_or("");
-        println!("Processing payload type: {}", payload_type);
-        println!("Payload: {}", payload);
-        if let Some(processor) = self.factory.get_type(payload_type) {
-            let entry = processor.process(payload);
-            let mut payloads = self.payloads.lock().unwrap();
-            payloads.push((entry, processor));
+    pub fn add_event(&self, event: &Value) {
+        let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
+        println!("Processing event type: {}", event_type);
+        println!("Event: {}", event);
+        if let Some(processor) = self.factory.get_type(event_type) {
+            let entry = processor.process(event);
+            let mut events = self.events.lock().unwrap();
+            events.push((entry, processor));
         } else {
-            eprintln!("Unknown payload type: {}", payload_type);
+            eprintln!("Unknown event type: {}", event_type);
         }
     }
 
-    pub fn get_payloads(&self) -> Vec<PayloadEntry> {
-        let payloads = self.payloads.lock().unwrap();
-        payloads.iter().map(|(entry, _)| entry.clone()).collect()
+    pub fn get_events(&self) -> Vec<EventEntry> {
+        let events = self.events.lock().unwrap();
+        events.iter().map(|(entry, _)| entry.clone()).collect()
     }
 
     pub fn clear_payloads(&self) {
@@ -40,13 +40,13 @@ impl PayloadStorage {
     }
 
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
-        let payloads = self.payloads.lock().unwrap();
-        if let Some((entry, _)) = payloads.get(index) {
-            crate::payloads::display_code(ui, &entry.content, &entry.content_type);
+        let events = self.events.lock().unwrap();
+        if let Some((entry, _)) = events.get(index) {
+            crate::events::display_code(ui, &entry.content, &entry.content_type);
         }
     }
 }
 
-pub fn process_payload(payload: &Value, storage: &Arc<PayloadStorage>) {
-    storage.add_payload(payload);
+pub fn process_event(event: &Value, storage: &Arc<EventStorage>) {
+    storage.add_event(event);
 }
