@@ -1,5 +1,4 @@
-use crate::payloads::{display_code, process_common_payload, PayloadEntry, PayloadType};
-use eframe::egui;
+use crate::payloads::{process_common_payload, PayloadEntry, PayloadType};
 use serde_json::Value;
 
 pub struct LogPayload;
@@ -13,5 +12,4 @@ impl PayloadType for LogPayload {
             .unwrap_or_default();
         entry
     }
-
 }
