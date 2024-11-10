@@ -34,9 +34,9 @@ impl EventStorage {
         events.iter().map(|(entry, _)| entry.clone()).collect()
     }
 
-    pub fn clear_payloads(&self) {
-        let mut payloads = self.payloads.lock().unwrap();
-        payloads.clear();
+    pub fn clear_events(&self) {
+        let mut events = self.events.lock().unwrap();
+        events.clear();
     }
 
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
