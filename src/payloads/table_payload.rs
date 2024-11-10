@@ -1,4 +1,4 @@
-use crate::payloads::types::{PayloadEntry, PayloadType, process_common_payload, display_code};
+use crate::payloads::{display_code, process_common_payload, PayloadEntry, PayloadType};
 use eframe::egui;
 use serde_json::Value;
 
