@@ -8,15 +8,9 @@ use serde_json::Value;
 fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
     PayloadEntry {
         timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-        html: payload
-            .get("content")
-            .and_then(|v| v.get("values"))
-            .and_then(|v| serde_json::to_string_pretty(v).ok())
-            .unwrap_or_default()
-            .to_string(),
-        url: String::new(),
-        method: String::new(),
         label: p_type.to_string(),
+        description: String::new(), // Will be set by specific payload types
+        content: String::new(),     // Will be set by specific payload types
     }
 }
 
@@ -55,10 +49,9 @@ pub trait PayloadType: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct PayloadEntry {
     pub timestamp: String,
-    pub html: String,
-    pub url: String,
-    pub method: String,
     pub label: String,
+    pub description: String,
+    pub content: String,
 }
 
 pub struct TablePayload;
@@ -74,19 +67,15 @@ impl PayloadType for TablePayload {
 
             let field_name = if is_request { "Data" } else { "Body" };
 
-            entry.html = content
+            // Set content from the appropriate field
+            entry.content = content
                 .get(field_name)
                 .and_then(|v| serde_json::to_string_pretty(v).ok())
                 .unwrap_or_default();
 
-            entry.url = content
+            // Use URL as description
+            entry.description = content
                 .get("URL")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_owned();
-
-            entry.method = content
-                .get("Method")
                 .and_then(Value::as_str)
                 .unwrap_or("")
                 .to_owned();
@@ -103,23 +92,26 @@ impl PayloadType for TablePayload {
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("URL:");
-        ui.label(&entry.url);
-        ui.strong("Method:");
-        ui.label(&entry.method);
-        ui.strong("HTML Content:");
-        display_code(ui, &entry.html, "json");
+        ui.label(&entry.description);
+        ui.strong("Content:");
+        display_code(ui, &entry.content, "json");
     }
 }
 
 pub struct LogPayload;
 impl PayloadType for LogPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
-        process_common_payload(payload, "log")
+        let mut entry = process_common_payload(payload, "log");
+        entry.content = payload
+            .get("content")
+            .and_then(|v| serde_json::to_string_pretty(v).ok())
+            .unwrap_or_default();
+        entry
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
         ui.strong("Log Content:");
-        display_code(ui, &entry.html, "json");
+        display_code(ui, &entry.content, "json");
     }
 }
 
@@ -127,19 +119,16 @@ pub struct ExceptionPayload;
 impl PayloadType for ExceptionPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
         let mut entry = process_common_payload(payload, "exception");
-
-        entry.html = payload
+        entry.content = payload
             .get("content")
             .and_then(|v| serde_json::to_string_pretty(v).ok())
-            .unwrap_or_default()
-            .to_string();
-
+            .unwrap_or_default();
         entry
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("Exception:");
-        display_code(ui, &entry.html, "json");
+        ui.strong("Exception Details:");
+        display_code(ui, &entry.content, "json");
     }
 }
 
@@ -147,20 +136,17 @@ pub struct QueryPayload;
 impl PayloadType for QueryPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
         let mut entry = process_common_payload(payload, "query");
-
-        entry.html = payload
+        entry.content = payload
             .get("content")
             .and_then(|v| v.get("sql"))
             .and_then(|v| serde_json::to_string_pretty(v).ok())
-            .unwrap_or_default()
-            .to_string();
-
+            .unwrap_or_default();
         entry
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("Executed query:");
-        display_code(ui, &entry.html, "sql");
+        ui.strong("SQL Query:");
+        display_code(ui, &entry.content, "sql");
     }
 }
 
@@ -168,15 +154,13 @@ pub struct ApplicationLogPayload;
 impl PayloadType for ApplicationLogPayload {
     fn process(&self, payload: &Value) -> PayloadEntry {
         let mut entry = process_common_payload(payload, "application_log");
-
-        entry.html = serde_json::to_string_pretty(payload).unwrap_or_default();
-
+        entry.content = serde_json::to_string_pretty(payload).unwrap_or_default();
         entry
     }
 
     fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("Application Log Content:");
-        display_code(ui, &entry.html, "json");
+        ui.strong("Application Log:");
+        display_code(ui, &entry.content, "json");
     }
 }
 

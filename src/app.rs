@@ -70,7 +70,7 @@ impl MyApp {
                     ui.strong("label");
                 });
                 header.col(|ui| {
-                    ui.strong("value");
+                    ui.strong("description");
                 });
             });
 
@@ -89,7 +89,7 @@ impl MyApp {
                     ui.add(egui::Label::new(&entry.label).selectable(false));
                 });
                 row.col(|ui| {
-                    ui.add(egui::Label::new(&entry.url).selectable(false));
+                    ui.add(egui::Label::new(&entry.description).selectable(false));
                 });
 
                 if row.response().clicked() {
