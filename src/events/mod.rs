@@ -2,17 +2,17 @@ use chrono::Local;
 use core::f32;
 use eframe::egui;
 use serde_json::Value;
-mod application_log_payload;
-mod exception_payload;
+mod application_log;
+mod exception;
 mod factory;
-mod log_payload;
-mod query_payload;
-mod table_payload;
+mod log;
+mod query;
+mod table;
 
-pub use factory::PayloadTypeFactory;
+pub use factory::EventTypeFactory;
 
-pub fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
-    PayloadEntry {
+pub fn process_common_event(payload: &Value, p_type: &str) -> EventEntry {
+    EventEntry {
         timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
         label: p_type.to_string(),
         description: String::new(),
@@ -48,12 +48,12 @@ pub fn display_code(ui: &mut egui::Ui, content: &str, language: &str) {
     });
 }
 
-pub trait PayloadType: Send + Sync {
-    fn process(&self, payload: &Value) -> PayloadEntry;
+pub trait EventProcessor: Send + Sync {
+    fn process(&self, payload: &Value) -> EventEntry;
 }
 
 #[derive(Clone, Debug)]
-pub struct PayloadEntry {
+pub struct EventEntry {
     pub timestamp: String,
     pub label: String,
     pub description: String,

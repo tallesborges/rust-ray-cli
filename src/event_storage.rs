@@ -1,18 +1,18 @@
-use crate::events::{PayloadEntry, PayloadType, PayloadTypeFactory};
+use crate::events::{EventEntry, EventProcessor, EventTypeFactory};
 use eframe::egui;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 
 pub struct EventStorage {
-    events: Mutex<Vec<(PayloadEntry, Arc<dyn PayloadType>)>>,
-    factory: PayloadTypeFactory,
+    events: Mutex<Vec<(EventEntry, Arc<dyn EventProcessor>)>>,
+    factory: EventTypeFactory,
 }
 
 impl EventStorage {
     pub fn new() -> Self {
         Self {
             events: Mutex::new(Vec::new()),
-            factory: PayloadTypeFactory::new(),
+            factory: EventTypeFactory::new(),
         }
     }
 
@@ -29,7 +29,7 @@ impl EventStorage {
         }
     }
 
-    pub fn get_events(&self) -> Vec<PayloadEntry> {
+    pub fn get_events(&self) -> Vec<EventEntry> {
         let events = self.events.lock().unwrap();
         events.iter().map(|(entry, _)| entry.clone()).collect()
     }

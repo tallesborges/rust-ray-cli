@@ -1,41 +1,41 @@
 use std::{collections::HashMap, sync::Arc};
 
 use super::{
-    application_log_payload::ApplicationLogPayload, exception_payload::ExceptionPayload,
-    log_payload::LogPayload, query_payload::QueryPayload, table_payload::TablePayload, PayloadType,
+    application_log::ApplicationLogEvent, exception::ExceptionEvent, log::LogEvent,
+    query::QueryEvent, table::TableEvent, EventProcessor,
 };
 
-pub struct PayloadTypeFactory {
-    types: HashMap<String, Arc<dyn PayloadType>>,
+pub struct EventTypeFactory {
+    types: HashMap<String, Arc<dyn EventProcessor>>,
 }
 
-impl PayloadTypeFactory {
+impl EventTypeFactory {
     pub fn new() -> Self {
         let mut types = HashMap::new();
         types.insert(
             "table".to_string(),
-            Arc::new(TablePayload) as Arc<dyn PayloadType>,
+            Arc::new(TableEvent) as Arc<dyn EventProcessor>,
         );
         types.insert(
             "log".to_string(),
-            Arc::new(LogPayload) as Arc<dyn PayloadType>,
+            Arc::new(LogEvent) as Arc<dyn EventProcessor>,
         );
         types.insert(
             "application_log".to_string(),
-            Arc::new(ApplicationLogPayload) as Arc<dyn PayloadType>,
+            Arc::new(ApplicationLogEvent) as Arc<dyn EventProcessor>,
         );
         types.insert(
             "executed_query".to_string(),
-            Arc::new(QueryPayload) as Arc<dyn PayloadType>,
+            Arc::new(QueryEvent) as Arc<dyn EventProcessor>,
         );
         types.insert(
             "exception".to_string(),
-            Arc::new(ExceptionPayload) as Arc<dyn PayloadType>,
+            Arc::new(ExceptionEvent) as Arc<dyn EventProcessor>,
         );
         Self { types }
     }
 
-    pub fn get_type(&self, payload_type: &str) -> Option<Arc<dyn PayloadType>> {
+    pub fn get_type(&self, payload_type: &str) -> Option<Arc<dyn EventProcessor>> {
         self.types.get(payload_type).cloned()
     }
 }
