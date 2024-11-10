@@ -15,8 +15,4 @@ impl PayloadType for QueryPayload {
         entry
     }
 
-    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("SQL Query:");
-        display_code(ui, &entry.content, "sql");
-    }
 }

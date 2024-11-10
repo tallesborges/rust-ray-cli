@@ -14,8 +14,4 @@ impl PayloadType for ExceptionPayload {
         entry
     }
 
-    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("Exception Details:");
-        display_code(ui, &entry.content, "json");
-    }
 }

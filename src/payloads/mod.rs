@@ -49,7 +49,33 @@ pub fn display_code(ui: &mut egui::Ui, content: &str, language: &str) {
 
 pub trait PayloadType: Send + Sync {
     fn process(&self, payload: &Value) -> PayloadEntry;
-    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry);
+}
+
+pub fn display_table_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
+    ui.strong("URL:");
+    ui.label(&entry.description);
+    ui.strong("Content:");
+    display_code(ui, &entry.content, "json");
+}
+
+pub fn display_log_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
+    ui.strong("Log Content:");
+    display_code(ui, &entry.content, "json");
+}
+
+pub fn display_application_log_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
+    ui.strong("Application Log:");
+    display_code(ui, &entry.content, "json");
+}
+
+pub fn display_query_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
+    ui.strong("SQL Query:");
+    display_code(ui, &entry.content, "sql");
+}
+
+pub fn display_exception_details(ui: &mut egui::Ui, entry: &PayloadEntry) {
+    ui.strong("Exception Details:");
+    display_code(ui, &entry.content, "json");
 }
 
 #[derive(Clone, Debug)]

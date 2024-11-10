@@ -41,8 +41,15 @@ impl PayloadStorage {
 
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
         let payloads = self.payloads.lock().unwrap();
-        if let Some((entry, processor)) = payloads.get(index) {
-            processor.display_details(ui, entry);
+        if let Some((entry, _)) = payloads.get(index) {
+            match entry.label.as_str() {
+                "table" => crate::payloads::display_table_details(ui, entry),
+                "log" => crate::payloads::display_log_details(ui, entry),
+                "application_log" => crate::payloads::display_application_log_details(ui, entry),
+                "executed_query" => crate::payloads::display_query_details(ui, entry),
+                "exception" => crate::payloads::display_exception_details(ui, entry),
+                _ => ui.label("Unknown payload type"),
+            }
         }
     }
 }

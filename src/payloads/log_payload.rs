@@ -14,8 +14,4 @@ impl PayloadType for LogPayload {
         entry
     }
 
-    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("Log Content:");
-        display_code(ui, &entry.content, "json");
-    }
 }

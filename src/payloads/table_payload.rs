@@ -39,10 +39,4 @@ impl PayloadType for TablePayload {
         entry
     }
 
-    fn display_details(&self, ui: &mut egui::Ui, entry: &PayloadEntry) {
-        ui.strong("URL:");
-        ui.label(&entry.description);
-        ui.strong("Content:");
-        display_code(ui, &entry.content, "json");
-    }
 }
