@@ -21,7 +21,8 @@ impl EventStorage {
         println!("Processing event type: {}", event_type);
         println!("Event: {}", event);
         if let Some(processor) = self.factory.get_type(event_type) {
-            let entry = processor.process(event);
+            let event_str = serde_json::to_string(event).unwrap_or_default();
+            let entry = processor.process(&event_str);
             let mut events = self.events.lock().unwrap();
             events.push((entry, processor));
         } else {

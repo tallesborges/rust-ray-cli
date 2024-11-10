@@ -1,5 +1,4 @@
 use chrono::Local;
-use serde_json::Value;
 mod application_log;
 mod exception;
 mod factory;
@@ -20,7 +19,7 @@ pub fn process_common_event(p_type: &str) -> EventEntry {
 }
 
 pub trait EventProcessor: Send + Sync {
-    fn process(&self, payload: &Value) -> EventEntry;
+    fn process(&self, payload: &str) -> EventEntry;
 }
 
 #[derive(Clone, Debug)]

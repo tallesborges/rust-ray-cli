@@ -4,35 +4,37 @@ use serde_json::Value;
 pub struct TableEvent;
 
 impl EventProcessor for TableEvent {
-    fn process(&self, payload: &Value) -> EventEntry {
+    fn process(&self, payload: &str) -> EventEntry {
         let mut entry = process_common_event("table");
 
-        if let Some(content) = payload.get("content").and_then(|c| c.get("values")) {
-            let is_request = content
-                .get("Method")
-                .and_then(Value::as_str)
-                .map_or(false, |m| m == "GET" || m == "POST");
+        if let Ok(v) = serde_json::from_str::<Value>(payload) {
+            if let Some(content) = v.get("content").and_then(|c| c.get("values")) {
+                let is_request = content
+                    .get("Method")
+                    .and_then(Value::as_str)
+                    .map_or(false, |m| m == "GET" || m == "POST");
 
-            let field_name = if is_request { "Data" } else { "Body" };
+                let field_name = if is_request { "Data" } else { "Body" };
 
-            // Set content from the appropriate field
-            entry.content = content
-                .get(field_name)
-                .and_then(|v| serde_json::to_string_pretty(v).ok())
-                .unwrap_or_default();
+                // Set content from the appropriate field
+                entry.content = content
+                    .get(field_name)
+                    .and_then(|v| serde_json::to_string_pretty(v).ok())
+                    .unwrap_or_default();
 
-            // Use URL as description
-            entry.description = content
-                .get("URL")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_owned();
+                // Use URL as description
+                entry.description = content
+                    .get("URL")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_owned();
 
-            entry.label = if is_request {
-                "Request".to_string()
-            } else {
-                "Response".to_string()
-            };
+                entry.label = if is_request {
+                    "Request".to_string()
+                } else {
+                    "Response".to_string()
+                };
+            }
         }
 
         entry
