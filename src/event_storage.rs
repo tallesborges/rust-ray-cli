@@ -42,7 +42,7 @@ impl EventStorage {
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
         let events = self.events.lock().unwrap();
         if let Some((entry, _)) = events.get(index) {
-            crate::events::display_code(ui, &entry.content, &entry.content_type);
+            crate::app::display_code(ui, &entry.content, &entry.content_type);
         }
     }
 }
