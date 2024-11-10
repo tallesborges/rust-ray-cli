@@ -1,21 +1,20 @@
-use core::f32;
-use std::{collections::HashMap, sync::Arc};
 use chrono::Local;
+use core::f32;
 use eframe::egui;
 use serde_json::Value;
+use std::{collections::HashMap, sync::Arc};
 
-pub mod types;
-mod table_payload;
-mod log_payload;
-mod exception_payload;
-mod query_payload;
 mod application_log_payload;
+mod exception_payload;
+mod log_payload;
+mod query_payload;
+mod table_payload;
 
-pub use table_payload::TablePayload;
-pub use log_payload::LogPayload;
-pub use exception_payload::ExceptionPayload;
-pub use query_payload::QueryPayload;
 pub use application_log_payload::ApplicationLogPayload;
+pub use exception_payload::ExceptionPayload;
+pub use log_payload::LogPayload;
+pub use query_payload::QueryPayload;
+pub use table_payload::TablePayload;
 
 pub fn process_common_payload(payload: &Value, p_type: &str) -> PayloadEntry {
     PayloadEntry {
