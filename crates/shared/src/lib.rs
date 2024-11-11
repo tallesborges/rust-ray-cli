@@ -1,9 +1,9 @@
-use chrono::Local;
-use serde::{Serialize, Deserialize};
+// use chrono::Local;
+use serde::{Deserialize, Serialize};
 
 pub fn process_common_event(p_type: &str) -> EventEntry {
     EventEntry {
-        timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        timestamp: "00:00".to_string(),
         label: p_type.to_string(),
         description: String::new(),
         content: String::new(),
