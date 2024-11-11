@@ -1,16 +1,16 @@
 use core::{EventEntry, EventProcessor};
+use eframe::egui;
 use event_application_log::ApplicationLogEvent;
 use event_exception::ExceptionEvent;
 use event_log::LogEvent;
 use event_query::QueryEvent;
 use event_table::TableEvent;
-use std::collections::HashMap;
-use eframe::egui;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub struct EventStorage {
-    events: Mutex<Vec<(EventEntry, Arc<dyn EventProcessor>)>>,
+    events: Mutex<Vec<EventEntry>>,
     factory: HashMap<String, Arc<dyn EventProcessor>>,
 }
 
@@ -53,7 +53,7 @@ impl EventStorage {
             let event_str = serde_json::to_string(event).unwrap_or_default();
             let entry = processor.process(&event_str);
             let mut events = self.events.lock().unwrap();
-            events.push((entry, processor));
+            events.push(entry);
         } else {
             eprintln!("Unknown event type: {}", event_type);
         }
@@ -61,7 +61,7 @@ impl EventStorage {
 
     pub fn get_events(&self) -> Vec<EventEntry> {
         let events = self.events.lock().unwrap();
-        events.iter().map(|(entry, _)| entry.clone()).collect()
+        events.iter().map(|entry| entry.clone()).collect()
     }
 
     pub fn clear_events(&self) {
@@ -71,7 +71,7 @@ impl EventStorage {
 
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
         let events = self.events.lock().unwrap();
-        if let Some((entry, _)) = events.get(index) {
+        if let Some(entry) = events.get(index) {
             crate::app::display_code(ui, &entry.content, &entry.content_type);
         }
     }

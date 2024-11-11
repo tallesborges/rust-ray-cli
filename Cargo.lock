@@ -797,6 +797,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "eframe",
+ "serde_json",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1184,6 +1193,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0474425d51df81997e2f90a21591180b38eccf27292d755f3e30750225c175b"
 
 [[package]]
+name = "event-application-log"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "serde_json",
+]
+
+[[package]]
+name = "event-exception"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "serde_json",
+]
+
+[[package]]
 name = "event-listener"
 version = "5.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1202,6 +1227,30 @@ checksum = "0f214dc438f977e6d4e3500aaa277f5ad94ca83fbbd9b1a15713ce2344ccc5a1"
 dependencies = [
  "event-listener",
  "pin-project-lite",
+]
+
+[[package]]
+name = "event-log"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "serde_json",
+]
+
+[[package]]
+name = "event-query"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "serde_json",
+]
+
+[[package]]
+name = "event-table"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "serde_json",
 ]
 
 [[package]]
@@ -2670,9 +2719,15 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "chrono",
+ "core",
  "eframe",
  "egui_extras",
  "env_logger",
+ "event-application-log",
+ "event-exception",
+ "event-log",
+ "event-query",
+ "event-table",
  "http-body-util",
  "hyper",
  "hyper-util",

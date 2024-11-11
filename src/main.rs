@@ -1,7 +1,6 @@
 // main.rs
 mod app;
 mod event_storage;
-mod events;
 mod server;
 
 use app::MyApp;
