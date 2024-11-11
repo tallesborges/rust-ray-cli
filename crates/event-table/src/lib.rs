@@ -1,6 +1,7 @@
 use serde_json::Value;
-use shared::{process_common_event, EventEntry, EventProcessor};
+use shared::{implement_ffi_interface, process_common_event, EventEntry, EventProcessor};
 
+#[derive(Default)]
 pub struct TableEvent;
 
 impl EventProcessor for TableEvent {
@@ -39,14 +40,4 @@ impl EventProcessor for TableEvent {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn process_table(ptr: *const u8, len: usize) -> *mut EventEntry {
-    let payload = unsafe {
-        let slice = std::slice::from_raw_parts(ptr, len);
-        std::str::from_utf8_unchecked(slice)
-    };
-
-    let processor = TableEvent;
-    let entry = processor.process(payload);
-    Box::into_raw(Box::new(entry))
-}
+implement_ffi_interface!(TableEvent);

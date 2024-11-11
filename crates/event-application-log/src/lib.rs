@@ -1,30 +1,22 @@
 #![cfg_attr(all(target_arch = "wasm32", not(test)), no_std, no_main)]
-use shared::{EventEntry, EventProcessor};
+use shared::{implement_ffi_interface, process_common_event, EventEntry, EventProcessor};
 
 extern crate alloc;
 
 use alloc::string::String;
 
+#[derive(Default)]
 pub struct ApplicationLogEvent;
 
 impl EventProcessor for ApplicationLogEvent {
     fn process(&self, payload: &str) -> EventEntry {
-        let mut entry = shared::process_common_event("application_log");
+        let mut entry = process_common_event("application_log");
         entry.content = String::from(payload);
         entry
     }
 }
 
-#[no_mangle]
-pub extern "C" fn process_event(ptr: *const u8, len: usize) -> *mut u8 {
-    let processor = ApplicationLogEvent;
-    shared::process_event(&processor, ptr, len)
-}
-
-#[no_mangle]
-pub extern "C" fn free_string(ptr: *mut u8) {
-    shared::free_string(ptr);
-}
+implement_ffi_interface!(ApplicationLogEvent);
 
 #[cfg(test)]
 mod tests {

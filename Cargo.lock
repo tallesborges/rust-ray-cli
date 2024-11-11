@@ -1411,7 +1411,6 @@ checksum = "a0474425d51df81997e2f90a21591180b38eccf27292d755f3e30750225c175b"
 name = "event-application-log"
 version = "0.1.0"
 dependencies = [
- "serde",
  "serde_json",
  "shared",
 ]

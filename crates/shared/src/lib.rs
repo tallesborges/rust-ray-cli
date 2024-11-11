@@ -60,3 +60,19 @@ pub fn free_string(ptr: *mut u8) {
         }
     }
 }
+
+#[macro_export]
+macro_rules! implement_ffi_interface {
+    ($processor:ty) => {
+        #[no_mangle]
+        pub extern "C" fn process_event(ptr: *const u8, len: usize) -> *mut u8 {
+            let processor = <$processor>::default();
+            shared::process_event(&processor, ptr, len)
+        }
+
+        #[no_mangle]
+        pub extern "C" fn free_string(ptr: *mut u8) {
+            shared::free_string(ptr);
+        }
+    };
+}
