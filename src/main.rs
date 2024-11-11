@@ -61,9 +61,27 @@ mod tests {
         let offset = 0;
         memory.write(&mut store, offset, test_input.as_bytes())?;
 
-        let result = process_query.call(&mut store, (offset as i32, test_input.len() as i32))?;
+        let result_ptr = process_query.call(&mut store, (offset as i32, test_input.len() as i32))?;
+        assert!(result_ptr > 0); // Check that we got a valid pointer
 
-        assert!(result > 0); // Basic check that we got a valid pointer
+        // Read the result string from memory
+        let mut result_bytes = Vec::new();
+        let mut i = result_ptr as usize;
+        loop {
+            let byte = memory.data(&store)[i];
+            if byte == 0 {
+                break;
+            }
+            result_bytes.push(byte);
+            i += 1;
+        }
+
+        let result_str = String::from_utf8(result_bytes).expect("Invalid UTF-8");
+        let result: shared::EventEntry = serde_json::from_str(&result_str).expect("Invalid JSON");
+
+        assert_eq!(result.label, "application_log");
+        assert_eq!(result.content, test_input);
+        assert_eq!(result.content_type, "json");
         Ok(())
     }
 }
