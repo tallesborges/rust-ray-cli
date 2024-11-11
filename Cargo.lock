@@ -830,13 +830,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1418,16 +1411,16 @@ checksum = "a0474425d51df81997e2f90a21591180b38eccf27292d755f3e30750225c175b"
 name = "event-application-log"
 version = "0.1.0"
 dependencies = [
- "core",
  "serde_json",
+ "shared",
 ]
 
 [[package]]
 name = "event-exception"
 version = "0.1.0"
 dependencies = [
- "core",
  "serde_json",
+ "shared",
 ]
 
 [[package]]
@@ -1455,24 +1448,24 @@ dependencies = [
 name = "event-log"
 version = "0.1.0"
 dependencies = [
- "core",
  "serde_json",
+ "shared",
 ]
 
 [[package]]
 name = "event-query"
 version = "0.1.0"
 dependencies = [
- "core",
  "serde_json",
+ "shared",
 ]
 
 [[package]]
 name = "event-table"
 version = "0.1.0"
 dependencies = [
- "core",
  "serde_json",
+ "shared",
 ]
 
 [[package]]
@@ -3143,7 +3136,6 @@ dependencies = [
  "anyhow",
  "bytes",
  "chrono",
- "core",
  "eframe",
  "egui_extras",
  "env_logger",
@@ -3156,6 +3148,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "serde_json",
+ "shared",
  "tl",
  "tokio",
  "wasmtime",
@@ -3312,6 +3305,14 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde_json",
 ]
 
 [[package]]

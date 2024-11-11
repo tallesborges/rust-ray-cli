@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "crates/core",
+    "crates/shared",
     "crates/event-table",
     "crates/event-log",
     "crates/event-query",
@@ -20,7 +20,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-core = { path = "./crates/core" }
+shared = { path = "./crates/shared" }
 event-table = { path = "./crates/event-table" }
 event-log = { path = "./crates/event-log" }
 event-query = { path = "./crates/event-query" }

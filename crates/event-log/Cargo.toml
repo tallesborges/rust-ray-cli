@@ -7,5 +7,5 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-core = { path = "../core" }
+shared = { path = "../shared" }
 serde_json = { workspace = true }
