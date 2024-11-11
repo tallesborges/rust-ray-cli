@@ -1,4 +1,5 @@
 use chrono::Local;
+use serde::{Serialize, Deserialize};
 
 pub fn process_common_event(p_type: &str) -> EventEntry {
     EventEntry {
@@ -14,7 +15,7 @@ pub trait EventProcessor: Send + Sync {
     fn process(&self, payload: &str) -> EventEntry;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EventEntry {
     pub timestamp: String,
     pub label: String,
