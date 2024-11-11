@@ -16,55 +16,7 @@ pub struct EventStorage {
     factory: Box<dyn EventFactory>,
 }
 
-pub trait EventFactory: Send + Sync {
-    fn make(&self, event: &Value) -> Option<EventEntry>;
-}
-
-pub struct LocalEventFactory {
-    processors: HashMap<String, Arc<dyn EventProcessor>>,
-}
-
-impl LocalEventFactory {
-    fn new() -> Self {
-        LocalEventFactory {
-            processors: {
-                let mut types = HashMap::new();
-                types.insert(
-                    "table".to_string(),
-                    Arc::new(TableEvent) as Arc<dyn EventProcessor>,
-                );
-                types.insert(
-                    "log".to_string(),
-                    Arc::new(LogEvent) as Arc<dyn EventProcessor>,
-                );
-                types.insert(
-                    "application_log".to_string(),
-                    Arc::new(ApplicationLogEvent) as Arc<dyn EventProcessor>,
-                );
-                types.insert(
-                    "executed_query".to_string(),
-                    Arc::new(QueryEvent) as Arc<dyn EventProcessor>,
-                );
-                types.insert(
-                    "exception".to_string(),
-                    Arc::new(ExceptionEvent) as Arc<dyn EventProcessor>,
-                );
-                types
-            },
-        }
-    }
-}
-impl EventFactory for LocalEventFactory {
-    fn make(&self, event: &Value) -> Option<EventEntry> {
-        let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
-        println!("Processing event type: {}", event_type);
-        println!("Event: {}", event);
-
-        let processor = self.processors.get(event_type)?;
-        let event_str = serde_json::to_string(event).unwrap_or_default();
-        Some(processor.process(&event_str))
-    }
-}
+use crate::event_factory::{EventFactory, LocalEventFactory};
 
 impl EventStorage {
     pub fn new() -> Self {
