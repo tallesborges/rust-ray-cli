@@ -1,5 +1,4 @@
 use core::{process_common_event, EventEntry, EventProcessor};
-use serde_json::Value;
 
 pub struct ApplicationLogEvent;
 
