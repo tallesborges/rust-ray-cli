@@ -9,6 +9,8 @@ use shared::{EventEntry, EventProcessor};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use crate::app;
+
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
     factory: HashMap<String, Arc<dyn EventProcessor>>,
@@ -72,7 +74,7 @@ impl EventStorage {
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
         let events = self.events.lock().unwrap();
         if let Some(entry) = events.get(index) {
-            crate::app::display_code(ui, &entry.content, &entry.content_type);
+            app::display_code(ui, &entry.content, &entry.content_type);
         }
     }
 }
