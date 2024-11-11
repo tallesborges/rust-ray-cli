@@ -13,14 +13,21 @@ use crate::app;
 
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
-    factory: HashMap<String, Arc<dyn EventProcessor>>,
+    factory: Box<dyn EventFactory>,
 }
 
-impl EventStorage {
-    pub fn new() -> Self {
-        Self {
-            events: Mutex::new(Vec::new()),
-            factory: {
+pub trait EventFactory: Send + Sync {
+    fn make(&self, event: &Value) -> Option<EventEntry>;
+}
+
+pub struct LocalEventFactory {
+    processors: HashMap<String, Arc<dyn EventProcessor>>,
+}
+
+impl LocalEventFactory {
+    fn new() -> Self {
+        LocalEventFactory {
+            processors: {
                 let mut types = HashMap::new();
                 types.insert(
                     "table".to_string(),
@@ -46,18 +53,31 @@ impl EventStorage {
             },
         }
     }
-
-    pub fn add_event(&self, event: &Value) {
+}
+impl EventFactory for LocalEventFactory {
+    fn make(&self, event: &Value) -> Option<EventEntry> {
         let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
         println!("Processing event type: {}", event_type);
         println!("Event: {}", event);
-        if let Some(processor) = self.factory.get(event_type) {
-            let event_str = serde_json::to_string(event).unwrap_or_default();
-            let entry = processor.process(&event_str);
+
+        let processor = self.processors.get(event_type)?;
+        let event_str = serde_json::to_string(event).unwrap_or_default();
+        Some(processor.process(&event_str))
+    }
+}
+
+impl EventStorage {
+    pub fn new() -> Self {
+        Self {
+            events: Mutex::new(Vec::new()),
+            factory: Box::new(LocalEventFactory::new()),
+        }
+    }
+
+    pub fn add_event(&self, event: &Value) {
+        if let Some(entry) = self.factory.make(event) {
             let mut events = self.events.lock().unwrap();
             events.push(entry);
-        } else {
-            eprintln!("Unknown event type: {}", event_type);
         }
     }
 
