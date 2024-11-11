@@ -1,18 +1,47 @@
-use crate::events::{EventEntry, EventProcessor, EventTypeFactory};
+use core::{EventEntry, EventProcessor};
+use event_application_log::ApplicationLogEvent;
+use event_exception::ExceptionEvent;
+use event_log::LogEvent;
+use event_query::QueryEvent;
+use event_table::TableEvent;
+use std::collections::HashMap;
 use eframe::egui;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 
 pub struct EventStorage {
     events: Mutex<Vec<(EventEntry, Arc<dyn EventProcessor>)>>,
-    factory: EventTypeFactory,
+    factory: HashMap<String, Arc<dyn EventProcessor>>,
 }
 
 impl EventStorage {
     pub fn new() -> Self {
         Self {
             events: Mutex::new(Vec::new()),
-            factory: EventTypeFactory::new(),
+            factory: {
+                let mut types = HashMap::new();
+                types.insert(
+                    "table".to_string(),
+                    Arc::new(TableEvent) as Arc<dyn EventProcessor>,
+                );
+                types.insert(
+                    "log".to_string(),
+                    Arc::new(LogEvent) as Arc<dyn EventProcessor>,
+                );
+                types.insert(
+                    "application_log".to_string(),
+                    Arc::new(ApplicationLogEvent) as Arc<dyn EventProcessor>,
+                );
+                types.insert(
+                    "executed_query".to_string(),
+                    Arc::new(QueryEvent) as Arc<dyn EventProcessor>,
+                );
+                types.insert(
+                    "exception".to_string(),
+                    Arc::new(ExceptionEvent) as Arc<dyn EventProcessor>,
+                );
+                types
+            },
         }
     }
 
@@ -20,7 +49,7 @@ impl EventStorage {
         let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
         println!("Processing event type: {}", event_type);
         println!("Event: {}", event);
-        if let Some(processor) = self.factory.get_type(event_type) {
+        if let Some(processor) = self.factory.get(event_type) {
             let event_str = serde_json::to_string(event).unwrap_or_default();
             let entry = processor.process(&event_str);
             let mut events = self.events.lock().unwrap();
