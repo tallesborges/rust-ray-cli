@@ -3,6 +3,9 @@ name = "event-exception"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 core = { path = "../core" }
 serde_json = { workspace = true }
