@@ -1,5 +1,6 @@
 // use chrono::Local;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub fn process_common_event(p_type: &str) -> EventEntry {
     EventEntry {
@@ -13,6 +14,10 @@ pub fn process_common_event(p_type: &str) -> EventEntry {
 
 pub trait EventProcessor: Send + Sync {
     fn process(&self, payload: &str) -> EventEntry;
+}
+
+pub trait EventFactory: Send + Sync {
+    fn make(&self, event: &Value) -> Option<EventEntry>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

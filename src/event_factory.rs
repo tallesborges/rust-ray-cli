@@ -4,13 +4,9 @@ use event_log::LogEvent;
 use event_query::QueryEvent;
 use event_table::TableEvent;
 use serde_json::Value;
-use shared::{EventEntry, EventProcessor};
+use shared::{EventEntry, EventFactory, EventProcessor};
 use std::collections::HashMap;
 use std::sync::Arc;
-
-pub trait EventFactory: Send + Sync {
-    fn make(&self, event: &Value) -> Option<EventEntry>;
-}
 
 pub struct LocalEventFactory {
     processors: HashMap<String, Arc<dyn EventProcessor>>,

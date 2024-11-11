@@ -1,5 +1,6 @@
 // main.rs
 mod app;
+mod event_factory;
 mod event_storage;
 mod server;
 

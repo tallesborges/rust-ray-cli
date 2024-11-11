@@ -1,22 +1,15 @@
 use eframe::egui;
-use event_application_log::ApplicationLogEvent;
-use event_exception::ExceptionEvent;
-use event_log::LogEvent;
-use event_query::QueryEvent;
-use event_table::TableEvent;
 use serde_json::Value;
-use shared::{EventEntry, EventProcessor};
-use std::collections::HashMap;
+use shared::{EventEntry, EventFactory};
 use std::sync::{Arc, Mutex};
 
 use crate::app;
+use crate::event_factory::LocalEventFactory;
 
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
     factory: Box<dyn EventFactory>,
 }
-
-use crate::event_factory::{EventFactory, LocalEventFactory};
 
 impl EventStorage {
     pub fn new() -> Self {
