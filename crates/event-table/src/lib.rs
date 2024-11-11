@@ -1,3 +1,7 @@
+#![cfg_attr(all(target_arch = "wasm3V2", not(test)), no_std, no_main)]
+extern crate alloc;
+
+use alloc::string::ToString;
 use serde_json::Value;
 use shared::{implement_ffi_interface, process_common_event, EventEntry, EventProcessor};
 
@@ -26,7 +30,7 @@ impl EventProcessor for TableEvent {
                     .get("URL")
                     .and_then(Value::as_str)
                     .unwrap_or("")
-                    .to_owned();
+                    .to_string();
 
                 entry.label = if is_request {
                     "Request".to_string()

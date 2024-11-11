@@ -1,3 +1,4 @@
+#![cfg_attr(all(target_arch = "wasm32", not(test)), no_std, no_main)]
 use serde_json::Value;
 use shared::{implement_ffi_interface, process_common_event, EventEntry, EventProcessor};
 
