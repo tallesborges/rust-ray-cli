@@ -33,3 +33,36 @@ async fn main() -> eframe::Result<()> {
         Box::new(|cc| Ok(Box::new(MyApp::new(cc, event_storage)))),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use wasmtime::*;
+
+    #[test]
+    fn test_process_query() -> Result<()> {
+        let engine = Engine::default();
+        let mut store = Store::new(&engine, ());
+
+        let module = Module::from_file(
+            &engine,
+            "target/wasm32-unknown-unknown/release/event_application_log.wasm",
+        )?;
+        let instance = Instance::new(&mut store, &module, &[])?;
+
+        let process_query =
+            instance.get_typed_func::<(i32, i32), i32>(&mut store, "process_application_log")?;
+
+        let test_input = r#"{"content": {"sql": "SELECT * FROM table"}}"#;
+        let memory = instance
+            .get_memory(&mut store, "memory")
+            .expect("failed to find memory export");
+
+        let offset = 0;
+        memory.write(&mut store, offset, test_input.as_bytes())?;
+
+        let result = process_query.call(&mut store, (offset as i32, test_input.len() as i32))?;
+
+        assert!(result > 0); // Basic check that we got a valid pointer
+        Ok(())
+    }
+}
