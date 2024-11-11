@@ -16,7 +16,7 @@ impl EventProcessor for ApplicationLogEvent {
 }
 
 #[no_mangle]
-pub extern "C" fn process_application_log(ptr: *const u8, len: usize) -> *mut u8 {
+pub extern "C" fn process_event(ptr: *const u8, len: usize) -> *mut u8 {
     let processor = ApplicationLogEvent;
     shared::process_event(&processor, ptr, len)
 }
@@ -36,7 +36,7 @@ mod tests {
         let payload = r#"{"some": "test log message"}"#;
         let payload_bytes = payload.as_bytes();
 
-        let result_ptr = process_application_log(payload_bytes.as_ptr(), payload_bytes.len());
+        let result_ptr = process_event(payload_bytes.as_ptr(), payload_bytes.len());
 
         unsafe {
             let c_str = CStr::from_ptr(result_ptr as *const i8);

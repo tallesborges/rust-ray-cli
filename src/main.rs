@@ -53,7 +53,7 @@ mod tests {
         let instance = Instance::new(&mut store, &module, &[])?;
 
         let process_query =
-            instance.get_typed_func::<(i32, i32), i32>(&mut store, "process_application_log")?;
+            instance.get_typed_func::<(i32, i32), i32>(&mut store, "process_event")?;
 
         let test_input = r#"{"content": "Application log message"}"#;
         let memory = instance
