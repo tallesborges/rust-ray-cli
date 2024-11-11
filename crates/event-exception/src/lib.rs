@@ -15,3 +15,15 @@ impl EventProcessor for ExceptionEvent {
         entry
     }
 }
+
+#[no_mangle]
+pub extern "C" fn process_exception(ptr: *const u8, len: usize) -> *mut EventEntry {
+    let payload = unsafe {
+        let slice = std::slice::from_raw_parts(ptr, len);
+        std::str::from_utf8_unchecked(slice)
+    };
+    
+    let processor = ExceptionEvent;
+    let entry = processor.process(payload);
+    Box::into_raw(Box::new(entry))
+}
