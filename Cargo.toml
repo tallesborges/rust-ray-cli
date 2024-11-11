@@ -26,14 +26,17 @@ event-log = { path = "./crates/event-log" }
 event-query = { path = "./crates/event-query" }
 event-exception = { path = "./crates/event-exception" }
 event-application-log = { path = "./crates/event-application-log" }
+# workspace
 eframe = { workspace = true }
 egui_extras = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
 env_logger = { version = "0.11.5", default-features = false, features = ["auto-color", "humantime"] }
 hyper = { version = "1.5.0", features = ["full"]}
 tokio = { version = "1.41.1", features = ["full"]}
-serde_json = { workspace = true }
-chrono = { workspace = true }
 hyper-util = { version = "0.1", features = ["full"] }
 http-body-util = "0.1"
 bytes = "1.8.0"
 tl = "0.7.8"
+wasmtime = "26.0.1"
+anyhow = "1.0.93"
