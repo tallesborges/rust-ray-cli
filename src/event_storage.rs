@@ -1,4 +1,3 @@
-use core::{EventEntry, EventProcessor};
 use eframe::egui;
 use event_application_log::ApplicationLogEvent;
 use event_exception::ExceptionEvent;
@@ -6,6 +5,7 @@ use event_log::LogEvent;
 use event_query::QueryEvent;
 use event_table::TableEvent;
 use serde_json::Value;
+use shared::{EventEntry, EventProcessor};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 

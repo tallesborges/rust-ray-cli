@@ -26,19 +26,19 @@ pub extern "C" fn process_application_log(ptr: *const u8, len: usize) -> *mut u8
 
     let processor = ApplicationLogEvent;
     let entry = processor.process(payload);
-    
+
     // Serialize the EventEntry to JSON string
     let json = serde_json::to_string(&entry).unwrap_or_default();
-    
+
     // Convert the string to a byte vector
     let mut bytes = json.into_bytes();
     // Add null terminator for C-style strings
     bytes.push(0);
-    
+
     // Convert to raw pointer and forget the allocation to prevent dropping
     let ptr = bytes.as_mut_ptr();
     core::mem::forget(bytes);
-    
+
     ptr
 }
 
@@ -53,6 +53,32 @@ pub extern "C" fn free_string(ptr: *mut u8) {
             }
             // Reconstruct the vector to properly deallocate
             Vec::from_raw_parts(ptr, len, len + 1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::CStr;
+
+    #[test]
+    fn test_ffi_process_application_log() {
+        let payload = r#"{"some": "test log message"}"#;
+        let payload_bytes = payload.as_bytes();
+
+        let result_ptr = process_application_log(payload_bytes.as_ptr(), payload_bytes.len());
+
+        unsafe {
+            let c_str = CStr::from_ptr(result_ptr as *const i8);
+            let result_str = c_str.to_str().unwrap();
+            let result: EventEntry = serde_json::from_str(result_str).unwrap();
+
+            assert_eq!(result.label, "application_log");
+            assert_eq!(result.content, payload);
+
+            // Don't forget to free the memory
+            free_string(result_ptr);
         }
     }
 }
