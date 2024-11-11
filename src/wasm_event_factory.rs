@@ -17,6 +17,16 @@ impl Default for WasmEventFactory {
 
 impl EventFactory for WasmEventFactory {
     fn make(&self, event: &Value) -> Option<EventEntry> {
+        if let Ok(entries) = fs::read_dir("../wasm-modules") {
+            println!("Listing wasm modules:");
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    println!("  {}", entry.path().display());
+                }
+            }
+        } else {
+            println!("Failed to read ../wasm-modules directory");
+        }
         None
     }
 }
