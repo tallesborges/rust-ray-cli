@@ -36,6 +36,7 @@ async fn main() -> eframe::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
     use wasmtime::*;
 
     #[test]
