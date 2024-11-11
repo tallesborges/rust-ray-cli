@@ -39,7 +39,7 @@ mod tests {
     use wasmtime::*;
 
     #[test]
-    fn test_process_query() -> Result<()> {
+    fn test_process_application_log() -> Result<()> {
         let engine = Engine::default();
         let mut store = Store::new(&engine, ());
 
@@ -52,7 +52,7 @@ mod tests {
         let process_query =
             instance.get_typed_func::<(i32, i32), i32>(&mut store, "process_application_log")?;
 
-        let test_input = r#"{"content": {"sql": "SELECT * FROM table"}}"#;
+        let test_input = r#"{"content": "Application log message"}"#;
         let memory = instance
             .get_memory(&mut store, "memory")
             .expect("failed to find memory export");
