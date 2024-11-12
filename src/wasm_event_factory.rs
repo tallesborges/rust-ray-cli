@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, collections::HashMap, ffi::CStr, fs};
+use std::{ffi::CStr, fs};
 
 use serde_json::Value;
 use shared::{EventEntry, EventFactory};
