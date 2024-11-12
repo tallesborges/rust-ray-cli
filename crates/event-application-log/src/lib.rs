@@ -1,4 +1,6 @@
 #![cfg_attr(all(target_arch = "wasm32", not(test)), no_std, no_main)]
+
+use serde_json::Value;
 use shared::{implement_ffi_interface, process_common_event, EventEntry, EventProcessor};
 
 #[derive(Default)]
@@ -7,7 +9,12 @@ pub struct ApplicationLogEvent;
 impl EventProcessor for ApplicationLogEvent {
     fn process(&self, payload: &str) -> EventEntry {
         let mut entry = process_common_event("application_log");
-        entry.content = serde_json::to_string_pretty(payload).unwrap();
+
+        entry.content = serde_json::from_str::<Value>(payload)
+            .ok()
+            .and_then(|v| serde_json::to_string_pretty(&v).ok())
+            .unwrap_or_default();
+
         entry
     }
 }
