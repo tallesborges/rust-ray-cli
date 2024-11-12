@@ -1,17 +1,13 @@
 #![cfg_attr(all(target_arch = "wasm32", not(test)), no_std, no_main)]
 use shared::{implement_ffi_interface, process_common_event, EventEntry, EventProcessor};
 
-extern crate alloc;
-
-use alloc::string::String;
-
 #[derive(Default)]
 pub struct ApplicationLogEvent;
 
 impl EventProcessor for ApplicationLogEvent {
     fn process(&self, payload: &str) -> EventEntry {
         let mut entry = process_common_event("application_log");
-        entry.content = String::from(payload);
+        entry.content = serde_json::to_string_pretty(payload).unwrap();
         entry
     }
 }
@@ -38,7 +34,6 @@ mod tests {
             assert_eq!(result.label, "application_log");
             assert_eq!(result.content, payload);
 
-            // Don't forget to free the memory
             free_string(result_ptr);
         }
     }
