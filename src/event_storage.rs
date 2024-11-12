@@ -4,7 +4,8 @@ use shared::{EventEntry, EventFactory};
 use std::sync::{Arc, Mutex};
 
 use crate::app;
-use crate::event_factory::LocalEventFactory;
+// use crate::event_factory::LocalEventFactory;
+use crate::wasm_event_factory::WasmEventFactory;
 
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
@@ -15,7 +16,7 @@ impl EventStorage {
     pub fn new() -> Self {
         Self {
             events: Mutex::new(Vec::new()),
-            factory: Box::new(LocalEventFactory::new()),
+            factory: Box::new(WasmEventFactory::default()),
         }
     }
 

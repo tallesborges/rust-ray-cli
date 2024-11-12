@@ -3,6 +3,7 @@ mod app;
 mod event_factory;
 mod event_storage;
 mod server;
+mod wasm_event_factory;
 
 use app::MyApp;
 use eframe::NativeOptions;
