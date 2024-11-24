@@ -1,4 +1,4 @@
-#![cfg_attr(all(target_arch = "wasm3V2", not(test)), no_std, no_main)]
+#![cfg_attr(all(target_arch = "wasm32", not(test)), no_std, no_main)]
 extern crate alloc;
 
 use alloc::string::ToString;
