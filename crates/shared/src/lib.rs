@@ -4,7 +4,7 @@ use serde_json::Value;
 
 pub fn process_common_event(p_type: &str) -> EventEntry {
     EventEntry {
-        timestamp: "00:00".to_string(),
+        timestamp: "".to_string(),
         label: p_type.to_string(),
         description: String::new(),
         content: String::new(),

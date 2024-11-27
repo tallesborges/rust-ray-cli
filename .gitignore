@@ -2,3 +2,4 @@
 .aider*
 .env
 /wasm-modules
+.DS_Store

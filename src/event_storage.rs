@@ -1,3 +1,4 @@
+use chrono::Local;
 use eframe::egui;
 use serde_json::Value;
 use shared::{EventEntry, EventFactory};
@@ -21,7 +22,11 @@ impl EventStorage {
     }
 
     pub fn add_event(&self, event: &Value) {
-        if let Some(entry) = self.factory.make(event) {
+        if let Some(mut entry) = self.factory.make(event) {
+            if entry.timestamp.is_empty() {
+                entry.timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+            }
+
             let mut events = self.events.lock().unwrap();
             events.push(entry);
         }
