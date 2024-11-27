@@ -1,7 +1,7 @@
 Features
 [x] Add support to exception
 [x] Add color to the content preview
-[ ] Add timestamp with wasm support
+[x] Add timestamp with wasm support
 [ ] Add a copy button to the content preview
 [ ] Add support to redis cache
 [ ] Add number lines to the content
