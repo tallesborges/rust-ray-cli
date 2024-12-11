@@ -101,6 +101,11 @@ impl MyApp {
 }
 
 pub fn display_code(ui: &mut egui::Ui, content: &str, language: &str) {
+    ui.horizontal(|ui| {
+        if ui.button("📋 Copy").clicked() {
+            ui.output_mut(|o| o.copied_text = content.to_string());
+        }
+    });
     egui::ScrollArea::vertical().show(ui, |ui| {
         let theme = egui_extras::syntax_highlighting::CodeTheme::from_style(&ui.ctx().style());
         let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
