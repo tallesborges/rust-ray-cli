@@ -3,10 +3,10 @@ Features
 [x] Add color to the content preview
 [x] Add timestamp with wasm support
 [x] Add a copy button to the content preview
+[x] Add arrow moving on the table
 [ ] Add support to redis cache
 [ ] Add number lines to the content
 [ ] Add filter to label
-[ ] Add arrow moving on the table
 [ ] use egui_commonmark to render the content
 [ ] use egui_tracing for the logs?
 [ ] avaliate the use of the egui_code_editor?
