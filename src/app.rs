@@ -7,6 +7,7 @@ use std::sync::Arc;
 pub struct MyApp {
     payload_storage: Arc<EventStorage>,
     selected_row: Option<usize>,
+    total_rows: usize,
 }
 
 impl MyApp {
@@ -14,12 +15,37 @@ impl MyApp {
         Self {
             payload_storage,
             selected_row: None,
+            total_rows: 0,
         }
     }
 }
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if ctx.input(|i| i.pointer.any_pressed()) && self.selected_row.is_none() {
+            self.selected_row = Some(0);
+        }
+
+        // Handle keyboard input
+        if ctx.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
+            if let Some(current) = self.selected_row {
+                self.selected_row = if current > 0 {
+                    Some(current - 1)
+                } else {
+                    Some(0)
+                };
+            }
+        }
+
+        if ctx.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
+            if let Some(current) = self.selected_row {
+                self.selected_row = if current + 1 < self.total_rows {
+                    Some(current + 1)
+                } else {
+                    Some(current)
+                };
+            }
+        }
         egui::SidePanel::left("table_panel").show(ctx, |ui| {
             ui.heading("Payload Processing Server");
 
@@ -76,7 +102,8 @@ impl MyApp {
 
         table.body(|body| {
             let payloads = self.payload_storage.get_events();
-            body.rows(18.0, payloads.len(), |mut row| {
+            self.total_rows = payloads.len();
+            body.rows(18.0, self.total_rows, |mut row| {
                 let index = row.index();
                 row.set_selected(self.selected_row == Some(index));
 
