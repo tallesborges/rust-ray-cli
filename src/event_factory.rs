@@ -1,7 +1,7 @@
 use event_application_log::ApplicationLogEvent;
 use event_exception::ExceptionEvent;
+use event_executed_query::QueryEvent;
 use event_log::LogEvent;
-use event_query::QueryEvent;
 use event_table::TableEvent;
 use serde_json::Value;
 use shared::{EventEntry, EventFactory, EventProcessor};
