@@ -24,6 +24,7 @@ impl EventProcessor for TableEvent {
                 entry.content = content
                     .get(field_name)
                     .and_then(|v| serde_json::to_string_pretty(v).ok())
+                    .map(|s| alloc::format!("```json\n{}\n```", s))
                     .unwrap_or_default();
 
                 entry.description = content
