@@ -12,13 +12,35 @@ impl EventProcessor for QueryEvent {
     fn process(&self, payload: &str) -> EventEntry {
         let mut entry = process_common_event("query");
         if let Ok(v) = serde_json::from_str::<Value>(payload) {
-            entry.content = v
-                .get("content")
-                .and_then(|v| v.get("sql"))
-                .and_then(|v| serde_json::to_string_pretty(v).ok())
-                .unwrap_or_default();
+            if let Some(content) = v.get("content") {
+                let sql = content
+                    .get("sql")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let connection = content
+                    .get("connection_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let time = content
+                    .get("time")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or_default();
+
+                entry.content = alloc::format!(
+                    r#"**Connection:** {}
+
+**Execution Time:** {:.2}ms
+
+```sql
+{}
+```"#,
+                    connection,
+                    time,
+                    sql,
+                );
+            }
         }
-        entry.content_type = "sql".to_string();
+        entry.content_type = "markdown".to_string();
         entry
     }
 }
