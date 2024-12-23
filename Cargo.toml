@@ -10,7 +10,7 @@ members = [
 
 [workspace.dependencies]
 serde = { version = "1.0.214", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"]}
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 chrono = "0.4"
 eframe = { version = "0.30", features = ["default", "__screenshot"] }
 egui_extras = { version = "0.30", features = ["default", "image", "syntect"] }
@@ -32,13 +32,16 @@ eframe = { workspace = true }
 egui_extras = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
-env_logger = { version = "0.11.5", default-features = false, features = ["auto-color", "humantime"] }
-hyper = { version = "1.5.0", features = ["full"]}
-tokio = { version = "1.41.1", features = ["full"]}
+env_logger = { version = "0.11.5", default-features = false, features = [
+    "auto-color",
+    "humantime",
+] }
+hyper = { version = "1.5.0", features = ["full"] }
+tokio = { version = "1.41.1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["full"] }
 http-body-util = "0.1"
 bytes = "1.8.0"
 tl = "0.7.8"
 wasmtime = "26.0.1"
 anyhow = "1.0.93"
-egui_commonmark = { version = "0.19.0"}
+egui_commonmark = { version = "0.19.0" }
