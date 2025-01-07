@@ -10,6 +10,7 @@ Features
 [ ] use egui_commonmark to render the content
 [ ] use egui_tracing for the logs?
 [ ] avaliate the use of the egui_code_editor?
+[ ] add request details to response
 
 How to use:
 on `vendor/spatie/ray/src/ArgumentConverter.php` return the argument to prevent adding synphony tags
