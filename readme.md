@@ -7,7 +7,7 @@ Features
 [ ] Add support to redis cache
 [ ] Add number lines to the content
 [ ] Add label filter
-[ ] use egui_commonmark to render the content
+[x] use egui_commonmark to render the content
 [ ] use egui_tracing for the logs?
 [ ] avaliate the use of the egui_code_editor?
 [ ] add request details to response
