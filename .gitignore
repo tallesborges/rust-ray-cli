@@ -1,5 +1,5 @@
 /target
 .aider*
 .env
-/wasm-modules
 .DS_Store
+.idea
