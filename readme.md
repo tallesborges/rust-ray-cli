@@ -1,60 +1,42 @@
-# Project Overview
+# WASM-Powered Ray Event Processor
 
-Born from frustration with frequent freezes in the official Ray application, this project implements a WASM-based plugin architecture for reliable event processing. Originally created before and later enhanced during a Rust/Substrate course.
+A fast, flexible Ray event processor built with Rust and WASM. Tired of freezes in the official Ray app? This project offers a reliable alternative with a plugin architecture for custom event handling.
 
 ![Application Screenshot](images/image1.jpeg)
 
-**Architecture Highlights**:
-- 🖥️ **egui UI** - Built with [egui](https://github.com/emilk/egui) for native cross-platform rendering
-- 🧩 WASM-powered plugins - Add new event processors by simply dropping `.wasm` files in the `wasm-modules/` directory
-- ⚡ Hot-loading - New event types are automatically detected and integrated  
-- 🔐 Sandboxed execution - WASM modules run in isolated environments for security
+**Key Features:**
 
-The WASM implementation was refined during the course, applying learnings about portable, secure execution environments to create a flexible plugin system that avoids traditional compilation cycles.
+*   **WASM Plugins:** Extend functionality with `.wasm` modules. Just drop them into the `wasm-modules/` directory!
+*   **Hot-Loading:** New event types are automatically detected.
+*   **Sandboxed Execution:** WASM modules run in isolated environments for enhanced security.
+*   **Native UI:** Built with [egui](https://github.com/emilk/egui) for a responsive, cross-platform experience.
 
-## Development Journey
+**Development Highlights:**
 
-### Key Milestones
-- 🌱 **Initial Implementation**: Created while learning Rust as a native application with hardcoded event processors
-- 🎓 **Course Evolution**: During Rust/Substrate training, migrated to WASM-based plugins for:
-  - Hot-reloading capabilities
-  - Sandboxed execution environments
-  - Substrate-inspired runtime module loading
-- 🚀 **WASM Integration**: Achieved dynamic processor loading through:
-  - FFI interface macros
-  - WASM module hot-loading
-  - Common event processing interface
+This project served as a learning experience in Rust and WASM, resulting in a move from a native Rust implementation to a WASM-based plugin architecture. This enabled hot-reloading and sandboxed execution. Key steps included dynamic processor loading via FFI, WASM module hot-loading, and the creation of a common event processing interface.
 
-## Features
+**Usage:**
 
-### UI Features
-- [x] ✅ Colorized content preview
-- [x] ✅ Copy button for content
-- [x] ✅ Keyboard navigation (arrow keys)
-- [x] ✅ CommonMark rendering via egui_commonmark (chosen for full Markdown support including code blocks and easy customization)
+1.  **Ray Integration:** Apply the following patch to `vendor/spatie/ray/src/ArgumentConverter.php` to bypass Symfony tags:
 
-### WASM Integration
-- [x] ✅ Timestamp handling
-- [x] ✅ Exception support
+    ```php
+    // Bypass Synphony tags for direct processing
+    return $argument;
+    ```
 
-### Upcoming Features
-- [ ] Redis cache support
-- [ ] Line numbering
-- [ ] Label filtering
-- [ ] egui_tracing integration
-- [ ] egui_code_editor evaluation
-- [ ] Request details in responses
+2.  **Navigation:** Use the `↑` and `↓` keys to navigate table rows.
 
-## Usage Guide
+**Roadmap:**
 
-### Ray Integration
-While significantly faster than the official [Ray app](https://myray.app/), this requires a one-time modification to `vendor/spatie/ray/src/ArgumentConverter.php`:
-```php
-// Bypass Synphony tags for direct processing
-return $argument;
-```
+-   Redis cache support
+-   Line numbering
+-   Label filtering
+-   Request details in preview
 
-### Application Controls
-| Key       | Action                  |
-|-----------|-------------------------|
-| ↑ ↓       | Navigate table rows     |
+**Evaluation:**
+
+The following technologies/features are being evaluated for potential integration:
+
+*   `egui_tracing`: For enhanced debugging and profiling.
+*   `egui_code_editor`: For improved code display and editing within the UI.
+*   `gpui`:  Exploring alternative UI frameworks for potential performance or feature benefits.
