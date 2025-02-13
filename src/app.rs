@@ -54,7 +54,7 @@ impl eframe::App for MyApp {
 
             if ui.button("Clear").clicked() {
                 self.payload_storage.clear_events();
-                self.selected_row = None;
+                self.selected_row = Some(0);
             }
 
             StripBuilder::new(ui)
