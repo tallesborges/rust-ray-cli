@@ -23,6 +23,8 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.request_repaint_after(std::time::Duration::from_secs(1));
+
         if ctx.input(|i| i.pointer.any_pressed()) && self.selected_row.is_none() {
             self.selected_row = Some(0);
         }
