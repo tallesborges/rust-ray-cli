@@ -34,7 +34,7 @@ impl EventStorage {
 
     pub fn get_events(&self) -> Vec<EventEntry> {
         let events = self.events.lock().unwrap();
-        events.iter().map(|entry| entry.clone()).collect()
+        events.iter().rev().map(|entry| entry.clone()).collect()
     }
 
     pub fn clear_events(&self) {
@@ -44,7 +44,7 @@ impl EventStorage {
 
     pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
         let events = self.events.lock().unwrap();
-        if let Some(entry) = events.get(index) {
+        if let Some(entry) = events.get(events.len() - 1 - index) {
             app::display_code(ui, &entry.content);
         }
     }
