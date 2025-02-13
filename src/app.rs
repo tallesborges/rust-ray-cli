@@ -15,7 +15,7 @@ impl MyApp {
     pub fn new(_cc: &eframe::CreationContext<'_>, payload_storage: Arc<EventStorage>) -> Self {
         Self {
             payload_storage,
-            selected_row: None,
+            selected_row: Some(0),
             total_rows: 0,
         }
     }
