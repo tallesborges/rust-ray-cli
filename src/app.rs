@@ -69,8 +69,6 @@ impl eframe::App for MyApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Preview");
-
             if let Some(index) = self.selected_row {
                 self.payload_storage.display_details(ui, index);
             } else {
