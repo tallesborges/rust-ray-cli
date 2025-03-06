@@ -34,28 +34,12 @@ impl EventProcessor for TableEvent {
                         // Remove HTML tags from event value if present
                         let clean_event = event.replace("<code>", "").replace("</code>", "");
 
-                        // Determine event type for better visual presentation
-                        let event_color = match clean_event.to_lowercase().as_str() {
-                            e if e.contains("hit") => "green",
-                            e if e.contains("miss") => "red",
-                            e if e.contains("set") || e.contains("add") || e.contains("put") => {
-                                "blue"
-                            }
-                            e if e.contains("delete")
-                                || e.contains("forget")
-                                || e.contains("flush") =>
-                            {
-                                "orange"
-                            }
-                            _ => "gray",
-                        };
-
                         // Format output with more readable presentation
                         entry.content = alloc::format!(
-                            "## Cache Operation\n\n### Key\n```\n{}\n```\n\n### Event\n<span style=\"color: {}\">{}</span>",
+                            "## Cache Operation\n\n### Key\n```\n{}\n```\n\n### Event\n{}",
                             key,
-                            event_color,
-                            clean_event);
+                            clean_event
+                        );
 
                         entry.content_type = "markdown".to_string();
                         entry.label = "Cache".to_string();
