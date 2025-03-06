@@ -31,18 +31,29 @@ impl EventProcessor for TableEvent {
                             .and_then(Value::as_str)
                             .unwrap_or("Unknown");
 
+                        // Extract and format the value if present
+                        let value = if let Some(val) = values.get("Value") {
+                            match serde_json::to_string_pretty(val) {
+                                Ok(pretty_val) => pretty_val,
+                                Err(_) => "[Could not format value]".to_string(),
+                            }
+                        } else {
+                            "[No value provided]".to_string()
+                        };
+
                         // Remove HTML tags from event value if present
                         let clean_event = event.replace("<code>", "").replace("</code>", "");
 
-                        // Format output with more readable presentation
+                        // Format output with more readable presentation including the value
                         entry.content = alloc::format!(
-                            "## Cache Operation\n\n### Key\n```\n{}\n```\n\n### Event\n{}",
+                            "## Cache Operation\n\n### Key\n```\n{}\n```\n\n### Event\n{}\n\n### Value\n```json\n{}\n```",
                             key,
-                            clean_event
+                            clean_event,
+                            value
                         );
 
                         entry.content_type = "markdown".to_string();
-                        entry.label = "Cache".to_string();
+                        entry.label = alloc::format!("Cache: {}", clean_event);
                         entry.description = alloc::format!("{} ({})", clean_event, key);
                     }
                 }
@@ -117,7 +128,7 @@ impl EventProcessor for TableEvent {
                                 markdown.push_str("\n```\n");
                             }
 
-                            entry.label = "HTTP Request".to_string();
+                            entry.label = "HTTP: Request".to_string();
                             entry.description = url.to_string();
                         } else if is_response {
                             // Start building markdown for response
@@ -213,7 +224,7 @@ impl EventProcessor for TableEvent {
                                 }
                             }
 
-                            entry.label = "HTTP Response".to_string();
+                            entry.label = "HTTP: Response".to_string();
                             entry.description = alloc::format!("{} - {}", url, status_code);
                         }
 
