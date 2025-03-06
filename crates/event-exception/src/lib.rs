@@ -83,6 +83,7 @@ impl EventProcessor for ExceptionEvent {
                 }
 
                 entry.content = markdown;
+                entry.label = "Exception".to_string();
                 entry.content_type = "markdown".to_string();
             }
         }
