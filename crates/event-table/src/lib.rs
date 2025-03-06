@@ -31,30 +31,125 @@ impl EventProcessor for TableEvent {
                             .and_then(Value::as_str)
                             .unwrap_or("Unknown");
 
-                        // Extract and format the value if present
-                        let value = if let Some(val) = values.get("Value") {
-                            match serde_json::to_string_pretty(val) {
-                                Ok(pretty_val) => pretty_val,
-                                Err(_) => "[Could not format value]".to_string(),
-                            }
-                        } else {
-                            "[No value provided]".to_string()
-                        };
-
-                        // Remove HTML tags from event value if present
+                        // Clean HTML tags from event value
                         let clean_event = event.replace("<code>", "").replace("</code>", "");
 
-                        // Format output with more readable presentation including the value
-                        entry.content = alloc::format!(
-                            "## Cache Operation\n\n### Key\n```\n{}\n```\n\n### Event\n{}\n\n### Value\n```json\n{}\n```",
-                            key,
-                            clean_event,
-                            value
-                        );
+                        // Build a more informative cache event display
+                        let mut markdown =
+                            alloc::format!("## Cache Operation: {}\n\n", clean_event);
 
+                        // Show the cache key in a code block for better readability
+                        markdown.push_str(&alloc::format!("### Key\n```\n{}\n```\n\n", key));
+
+                        // Add expiration information if available
+                        if let Some(expiration) =
+                            values.get("Expiration in seconds").and_then(Value::as_u64)
+                        {
+                            let expiration_formatted = if expiration > 3600 {
+                                alloc::format!(
+                                    "{:.2} hours ({} seconds)",
+                                    expiration as f64 / 3600.0,
+                                    expiration
+                                )
+                            } else if expiration > 60 {
+                                alloc::format!(
+                                    "{:.1} minutes ({} seconds)",
+                                    expiration as f64 / 60.0,
+                                    expiration
+                                )
+                            } else {
+                                alloc::format!("{} seconds", expiration)
+                            };
+
+                            markdown.push_str(&alloc::format!(
+                                "### Expiration\n{}\n\n",
+                                expiration_formatted
+                            ));
+                        }
+
+                        // Extract and format the value if present
+                        if let Some(val) = values.get("Value") {
+                            markdown.push_str("### Value\n");
+
+                            // Format based on value type
+                            if val.is_array() && val.as_array().map_or(false, |arr| arr.is_empty())
+                            {
+                                markdown.push_str("```json\n[]\n```\n\n");
+                                markdown.push_str("*Empty array*\n");
+                            } else if val.is_object()
+                                && val.as_object().map_or(false, |obj| obj.is_empty())
+                            {
+                                markdown.push_str("```json\n{}\n```\n\n");
+                                markdown.push_str("*Empty object*\n");
+                            } else if val.is_null() {
+                                markdown.push_str("```\nnull\n```\n\n");
+                                markdown.push_str("*Null value*\n");
+                            } else {
+                                match serde_json::to_string_pretty(val) {
+                                    Ok(pretty_val) => {
+                                        markdown.push_str("```json\n");
+                                        markdown.push_str(&pretty_val);
+                                        markdown.push_str("\n```\n");
+
+                                        // Add value size info for large values
+                                        let size = pretty_val.len();
+                                        if size > 1000 {
+                                            markdown.push_str(&alloc::format!(
+                                                "\n*Size: {:.2} KB*\n",
+                                                size as f64 / 1024.0
+                                            ));
+                                        }
+                                    }
+                                    Err(_) => {
+                                        markdown.push_str("```\n[Could not format value]\n```\n")
+                                    }
+                                }
+                            }
+                        } else {
+                            markdown.push_str("### Value\n*No value provided*\n");
+                        }
+
+                        // Add additional cache metadata if available
+                        let mut has_metadata = false;
+                        let mut metadata =
+                            alloc::string::String::from("### Additional Information\n");
+
+                        // Check for and add various cache metadata fields
+                        for (field, label) in [
+                            ("Tags", "Tags"),
+                            ("Store", "Cache Store"),
+                            ("TTL", "Original TTL"),
+                        ] {
+                            if let Some(field_value) = values.get(field).and_then(Value::as_str) {
+                                if !has_metadata {
+                                    has_metadata = true;
+                                }
+                                metadata.push_str(&alloc::format!(
+                                    "- **{}**: {}\n",
+                                    label,
+                                    field_value
+                                ));
+                            }
+                        }
+
+                        if has_metadata {
+                            markdown.push_str("\n");
+                            markdown.push_str(&metadata);
+                        }
+
+                        entry.content = markdown;
                         entry.content_type = "markdown".to_string();
                         entry.label = alloc::format!("Cache: {}", clean_event);
-                        entry.description = alloc::format!("{} ({})", clean_event, key);
+
+                        // More detailed description for the event list
+                        let description = match clean_event.as_str() {
+                            "Hit" => alloc::format!("Cache hit for: {}", key),
+                            "Missed" => alloc::format!("Cache miss for: {}", key),
+                            "Key written" => alloc::format!("Cache write: {}", key),
+                            "Forgotten" => alloc::format!("Cache key forgotten: {}", key),
+                            _ => alloc::format!("{} ({})", clean_event, key),
+                        };
+                        entry.description = description;
                     }
                 }
                 // Handle HTTP requests and responses
