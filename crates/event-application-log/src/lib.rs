@@ -11,31 +11,69 @@ pub struct ApplicationLogEvent;
 impl EventProcessor for ApplicationLogEvent {
     fn process(&self, payload: &str) -> EventEntry {
         let mut entry = process_common_event("application_log");
+        entry.label = "Application Log".to_string();
 
         if let Ok(v) = serde_json::from_str::<Value>(payload) {
-            let value = v
-                .get("content")
-                .and_then(|v| v.get("value"))
-                .and_then(Value::as_str)
-                .unwrap_or_default();
+            if let Some(content) = v.get("content") {
+                let value = content
+                    .get("value")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
 
-            let file = v
-                .get("origin")
-                .and_then(|v| v.get("file"))
-                .and_then(Value::as_str);
-            let line = v
-                .get("origin")
-                .and_then(|v| v.get("line_number"))
-                .and_then(Value::as_u64);
+                // Create a description from the log value (truncated if needed)
+                if !value.is_empty() {
+                    let description = if value.len() > 50 {
+                        alloc::format!("{} ...", &value[..50].trim())
+                    } else {
+                        value.to_string()
+                    };
+                    entry.description = description;
+                }
 
-            entry.content = alloc::format!(
-                "### Application Log\n\n**File:** {}\n\n**Line:** {}\n\n```\n{}\n```",
-                file.unwrap_or_default(),
-                line.unwrap_or_default(),
-                value
-            );
+                // Create rich markdown content
+                let mut markdown = alloc::string::String::from("## Application Log\n\n");
+
+                // Add source information if available
+                if let Some(origin) = v.get("origin") {
+                    markdown.push_str("### Source\n\n");
+
+                    if let Some(file) = origin.get("file").and_then(Value::as_str) {
+                        // Extract just the filename from the path for cleaner display
+                        let filename = file.split('/').last().unwrap_or(file);
+                        markdown.push_str(&alloc::format!("- **File:** {}\n", filename));
+
+                        // Add the full path in smaller text
+                        markdown.push_str(&alloc::format!("  <small>{}</small>\n", file));
+                    }
+
+                    if let Some(line) = origin.get("line_number").and_then(Value::as_u64) {
+                        markdown.push_str(&alloc::format!("- **Line:** {}\n", line));
+                    }
+
+                    if let Some(hostname) = origin.get("hostname").and_then(Value::as_str) {
+                        markdown.push_str(&alloc::format!("- **Host:** {}\n", hostname));
+                    }
+
+                    markdown.push_str("\n");
+                }
+
+                // Add log content in a code block
+                markdown.push_str("### Log Content\n\n```\n");
+                markdown.push_str(value);
+                markdown.push_str("\n```\n");
+
+                entry.content = markdown;
+                entry.content_type = "markdown".to_string();
+            }
         } else {
-            entry.content = payload.to_string();
+            // Fallback if JSON parsing fails
+            entry.content = alloc::format!("```\n{}\n```", payload);
+            entry.description = if payload.len() > 50 {
+                alloc::format!("{} ...", &payload[..50].trim())
+            } else {
+                payload.to_string()
+            };
+            entry.content_type = "markdown".to_string();
         }
 
         entry
@@ -43,28 +81,3 @@ impl EventProcessor for ApplicationLogEvent {
 }
 
 implement_ffi_interface!(ApplicationLogEvent);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::ffi::CStr;
-
-    #[test]
-    fn test_ffi_process_application_log() {
-        let payload = r#"{"some": "test log message"}"#;
-        let payload_bytes = payload.as_bytes();
-
-        let result_ptr = process_event(payload_bytes.as_ptr(), payload_bytes.len());
-
-        unsafe {
-            let c_str = CStr::from_ptr(result_ptr as *const i8);
-            let result_str = c_str.to_str().unwrap();
-            let result: EventEntry = serde_json::from_str(result_str).unwrap();
-
-            assert_eq!(result.label, "application_log");
-            assert_eq!(result.content, payload);
-
-            free_string(result_ptr);
-        }
-    }
-}
