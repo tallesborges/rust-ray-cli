@@ -28,10 +28,10 @@ This project served as a learning experience in Rust and WASM, resulting in a mo
 
 **Roadmap:**
 
--   Redis cache support
+-   ✅ Redis cache support
 -   Line numbering
 -   Label filtering
--   Request details in preview
+-   ✅ Request details in preview
 
 **Evaluation:**
 
