@@ -3,37 +3,80 @@ mod app;
 mod event_factory;
 mod event_storage;
 mod server;
+mod tui;
 mod wasm_event_factory;
 
 use app::MyApp;
 use eframe::NativeOptions;
 use event_storage::EventStorage;
 use server::start_server;
+use std::env;
 use std::sync::Arc;
+use tui::TuiApp;
 
 #[tokio::main]
-async fn main() -> eframe::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_storage = Arc::new(EventStorage::new());
+    
+    // Check for command line arguments
+    let args: Vec<String> = env::args().collect();
+    let use_tui = args.len() > 1 && args[1] == "--tui";
+    
+    // Set TUI mode before starting server
+    if use_tui {
+        event_storage.set_tui_mode(true);
+        event_storage.info("Main", "Starting in TUI mode");
+    } else {
+        event_storage.info("Main", "Starting in GUI mode");
+    }
+    
+    // Log system information
+    event_storage.info("Main", &format!("OS: {}", std::env::consts::OS));
+    event_storage.info("Main", &format!("Current dir: {:?}", std::env::current_dir().unwrap_or_default()));
+    
     let server_storage = Arc::clone(&event_storage);
 
     // Spawn the HTTP server
+    event_storage.info("Main", "Starting HTTP server");
     tokio::spawn(async move {
-        if let Err(e) = start_server(server_storage).await {
-            eprintln!("Server error: {}", e);
+        if let Err(e) = start_server(server_storage.clone()).await {
+            server_storage.error("Main", &format!("Server error: {}", e));
         }
     });
 
-    // Run the eframe application
-    let options = NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default().with_inner_size([800.0, 600.0]),
-        ..Default::default()
-    };
+    if use_tui {
+        // Run the TUI application
+        event_storage.info("Main", "Initializing TUI application");
+        let mut tui_app = TuiApp::new(event_storage);
+        // TUI mode is already set
+        let result = tui_app.run();
+        if let Err(e) = &result {
+            eprintln!("Error running TUI: {}", e);
+        }
+        result
+    } else {
+        // Run the eframe application
+        event_storage.info("Main", "Initializing GUI application");
+        let options = NativeOptions {
+            viewport: eframe::egui::ViewportBuilder::default().with_inner_size([800.0, 600.0]),
+            ..Default::default()
+        };
 
-    eframe::run_native(
-        "Payload Processing Server",
-        options,
-        Box::new(|cc| Ok(Box::new(MyApp::new(cc, event_storage)))),
-    )
+        event_storage.info("Main", "Starting GUI event loop");
+        let result = eframe::run_native(
+            "Payload Processing Server",
+            options,
+            Box::new(|cc| {
+                event_storage.info("Main", "Creating GUI application instance");
+                Ok(Box::new(MyApp::new(cc, event_storage)))
+            }),
+        );
+        
+        if let Err(e) = &result {
+            eprintln!("Error running GUI: {}", e);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

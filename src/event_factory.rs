@@ -46,8 +46,8 @@ impl LocalEventFactory {
 impl EventFactory for LocalEventFactory {
     fn make(&self, event: &Value) -> Option<EventEntry> {
         let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
-        println!("Processing event type: {}", event_type);
-        println!("Event: {}", event);
+        // println!("Processing event type: {}", event_type);
+        // println!("Event: {}", event);
 
         let processor = self.processors.get(event_type)?;
         let event_str = serde_json::to_string(event).unwrap_or_default();
