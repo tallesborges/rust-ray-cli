@@ -3,37 +3,60 @@ mod app;
 mod event_factory;
 mod event_storage;
 mod server;
+mod tui_app;
+mod tui_markdown;
 mod wasm_event_factory;
 
 use app::MyApp;
+use clap::Parser;
 use eframe::NativeOptions;
 use event_storage::EventStorage;
 use server::start_server;
 use std::sync::Arc;
 
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct CliArgs {
+    /// Flag to enable TUI mode
+    #[arg(short, long)]
+    tui: bool,
+}
+
 #[tokio::main]
-async fn main() -> eframe::Result<()> {
-    let event_storage = Arc::new(EventStorage::new());
-    let server_storage = Arc::clone(&event_storage);
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli_args = CliArgs::parse();
+    let event_storage = Arc::new(EventStorage::new()); // Initialize EventStorage for both modes
 
-    // Spawn the HTTP server
-    tokio::spawn(async move {
-        if let Err(e) = start_server(server_storage).await {
-            eprintln!("Server error: {}", e);
-        }
-    });
+    if cli_args.tui {
+        // TUI Mode
+        // The server is not typically started in TUI mode unless specifically required.
+        // For now, we will only run the TUI application.
+        tui_app::run_tui_app(event_storage)
+    } else {
+        // GUI Mode
+        let server_storage_gui = Arc::clone(&event_storage);
 
-    // Run the eframe application
-    let options = NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default().with_inner_size([800.0, 600.0]),
-        ..Default::default()
-    };
+        // Spawn the HTTP server for GUI mode
+        tokio::spawn(async move {
+            if let Err(e) = start_server(server_storage_gui).await {
+                eprintln!("Server error (GUI mode): {}", e);
+            }
+        });
 
-    eframe::run_native(
-        "Payload Processing Server",
-        options,
-        Box::new(|cc| Ok(Box::new(MyApp::new(cc, event_storage)))),
-    )
+        // Run the eframe application
+        let options = NativeOptions {
+            viewport: eframe::egui::ViewportBuilder::default().with_inner_size([800.0, 600.0]),
+            ..Default::default()
+        };
+
+        eframe::run_native(
+            "Payload Processing Server",
+            options,
+            Box::new(|cc| Ok(Box::new(MyApp::new(cc, event_storage)))),
+        )
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+    }
 }
 
 #[cfg(test)]

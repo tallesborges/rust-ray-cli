@@ -45,3 +45,6 @@ tl = "0.7.8"
 wasmtime = "26.0.1"
 anyhow = "1.0.93"
 egui_commonmark = { version = "0.20.0" }
+ratatui = { version = "0.27.0", features = ["all-widgets", "rustc-dep-of-std"] }
+pulldown-cmark = { version = "0.11.0", features = ["simd"] }
+clap = { version = "4.5.11", features = ["derive"] }
