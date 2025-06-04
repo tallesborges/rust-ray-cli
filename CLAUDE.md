@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This compiles all event processor crates to WebAssembly modules in the `wasm-modules/` directory.
 
 ### Running the Application
-- GUI mode: `cargo run`
+- GUI mode: `cargo run` (use `timeout 5s cargo run` for testing)
 - TUI mode: `cargo run -- --tui`
 
 ### Development Commands
