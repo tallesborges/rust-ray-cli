@@ -1,7 +1,12 @@
-use std::{ffi::CStr, fs, env, io::{self, Write}};
 use chrono::Local;
 use serde_json::Value;
 use shared::{EventEntry, EventFactory};
+use std::{
+    env,
+    ffi::CStr,
+    fs,
+    io::{self, Write},
+};
 use wasmtime::{Engine, Instance, Module, Store};
 
 #[derive(Default)]
@@ -12,25 +17,25 @@ impl WasmEventFactory {
         // Check if we're running in TUI mode
         env::args().any(|arg| arg == "--tui")
     }
-    
+
     fn log_info(&self, message: &str) {
         // Only log if not in TUI mode
         if !self.is_tui_mode() {
             let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
             let log_line = format!("[{}] [INFO] [WasmFactory] {}", timestamp, message);
-            
+
             let mut stdout = io::stdout();
             let _ = writeln!(stdout, "{}", log_line);
             let _ = stdout.flush();
         }
     }
-    
+
     fn log_error(&self, message: &str) {
         // Only log if not in TUI mode
         if !self.is_tui_mode() {
             let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
             let log_line = format!("[{}] [ERROR] [WasmFactory] {}", timestamp, message);
-            
+
             let mut stderr = io::stderr();
             let _ = writeln!(stderr, "{}", log_line);
             let _ = stderr.flush();
@@ -45,7 +50,7 @@ impl EventFactory for WasmEventFactory {
             .and_then(Value::as_str)
             .unwrap_or("unknown")
             .to_string();
-        
+
         self.log_info(&format!("Processing event type: {}", event_type));
         self.log_info(&format!("Event payload: {}", event.to_string()));
 
@@ -71,7 +76,7 @@ impl EventFactory for WasmEventFactory {
 
                 let engine = Engine::default();
                 let mut store = Store::new(&engine, ());
-                
+
                 let module = match Module::from_file(&engine, &wasm_path) {
                     Ok(module) => module,
                     Err(e) => {
@@ -79,7 +84,7 @@ impl EventFactory for WasmEventFactory {
                         return None;
                     }
                 };
-                
+
                 let instance = match Instance::new(&mut store, &module, &[]) {
                     Ok(instance) => instance,
                     Err(e) => {
@@ -88,13 +93,14 @@ impl EventFactory for WasmEventFactory {
                     }
                 };
 
-                let func = match instance.get_typed_func::<(i32, i32), i32>(&mut store, "process_event") {
-                    Ok(func) => func,
-                    Err(e) => {
-                        self.log_error(&format!("Failed to get process_event function: {}", e));
-                        return None;
-                    }
-                };
+                let func =
+                    match instance.get_typed_func::<(i32, i32), i32>(&mut store, "process_event") {
+                        Ok(func) => func,
+                        Err(e) => {
+                            self.log_error(&format!("Failed to get process_event function: {}", e));
+                            return None;
+                        }
+                    };
 
                 let input = event.to_string();
                 let memory = match instance.get_memory(&mut store, "memory") {
@@ -114,7 +120,10 @@ impl EventFactory for WasmEventFactory {
                 let result_ptr = match func.call(&mut store, (offset as i32, input.len() as i32)) {
                     Ok(ptr) => ptr,
                     Err(e) => {
-                        self.log_error(&format!("Failed to call WASM process_event function: {}", e));
+                        self.log_error(&format!(
+                            "Failed to call WASM process_event function: {}",
+                            e
+                        ));
                         return None;
                     }
                 };
@@ -130,7 +139,7 @@ impl EventFactory for WasmEventFactory {
                         return None;
                     }
                 };
-                
+
                 let result: shared::EventEntry = match serde_json::from_str(&result_str) {
                     Ok(entry) => entry,
                     Err(e) => {
@@ -139,15 +148,28 @@ impl EventFactory for WasmEventFactory {
                     }
                 };
 
-                self.log_info(&format!("Successfully processed {} event with WASM", event_type));
-                self.log_info(&format!("Result: label={}, content_type={}, content length={}", 
-                    result.label, result.content_type, result.content.len()));
+                self.log_info(&format!(
+                    "Successfully processed {} event with WASM",
+                    event_type
+                ));
+                self.log_info(&format!(
+                    "Result: label={}, content_type={}, content length={}",
+                    result.label,
+                    result.content_type,
+                    result.content.len()
+                ));
                 return Some(result);
             }
         }
 
-        self.log_error(&format!("No suitable WASM module found for event type: {}", event_type));
-        self.log_error(&format!("Available modules searched: wasm-modules/event_{}.wasm", event_type));
+        self.log_error(&format!(
+            "No suitable WASM module found for event type: {}",
+            event_type
+        ));
+        self.log_error(&format!(
+            "Available modules searched: wasm-modules/event_{}.wasm",
+            event_type
+        ));
         None
     }
 }

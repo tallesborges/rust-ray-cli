@@ -51,18 +51,18 @@ impl EventStorage {
             source: source.to_string(),
             message: message.to_string(),
         };
-        
+
         // Add to internal logs, maintaining a maximum size of 1000 entries
         {
             let mut logs = self.app_logs.lock().unwrap();
             logs.push(log_entry.clone());
-            
+
             // Keep only the last 1000 logs
             if logs.len() > 1000 {
                 logs.remove(0); // Remove oldest log
             }
         }
-        
+
         // In both TUI and non-TUI mode, we want to collect logs
         // But only in non-TUI mode do we want to print to console
         if !self.in_tui_mode() {
@@ -72,10 +72,9 @@ impl EventStorage {
                 LogLevel::Error => "ERROR",
                 LogLevel::Debug => "DEBUG",
             };
-            
-            let log_line = format!("[{}] [{} {}] {}", 
-                timestamp, level_str, source, message);
-                
+
+            let log_line = format!("[{}] [{} {}] {}", timestamp, level_str, source, message);
+
             match level {
                 LogLevel::Error => {
                     let mut stderr = io::stderr();
@@ -90,20 +89,20 @@ impl EventStorage {
             }
         }
     }
-    
+
     // Convenience logging methods
     pub fn info(&self, source: &str, message: &str) {
         self.log(LogLevel::Info, source, message);
     }
-    
+
     pub fn warn(&self, source: &str, message: &str) {
         self.log(LogLevel::Warning, source, message);
     }
-    
+
     pub fn error(&self, source: &str, message: &str) {
         self.log(LogLevel::Error, source, message);
     }
-    
+
     pub fn debug(&self, source: &str, message: &str) {
         self.log(LogLevel::Debug, source, message);
     }
@@ -132,41 +131,55 @@ impl EventStorage {
         self.error("Server", &error);
     }
 
-
     pub fn log_app_message(&self, message: String) {
         self.info("App", &message);
     }
-    
+
     pub fn get_app_logs(&self) -> Vec<LogEntry> {
         let logs = self.app_logs.lock().unwrap();
         logs.clone()
     }
-    
+
     pub fn clear_logs(&self) {
         let mut app_logs = self.app_logs.lock().unwrap();
         app_logs.clear();
-        
+
         self.info("System", "All logs cleared");
     }
-    
+
     // This method was not needed and could cause unsafe behavior
 
     pub fn add_event(&self, event: &Value) {
-        let event_type = event.get("type").and_then(Value::as_str).unwrap_or("unknown");
-        
-        self.info("EventStorage", &format!("Processing event of type: {}", event_type));
-        
+        let event_type = event
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+
+        self.info(
+            "EventStorage",
+            &format!("Processing event of type: {}", event_type),
+        );
+
         if let Some(mut entry) = self.factory.make(event) {
             if entry.timestamp.is_empty() {
                 entry.timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
             }
 
-            self.info("EventStorage", &format!("Event processed successfully: {} ({})", entry.label, entry.content_type));
-            
+            self.info(
+                "EventStorage",
+                &format!(
+                    "Event processed successfully: {} ({})",
+                    entry.label, entry.content_type
+                ),
+            );
+
             let mut events = self.events.lock().unwrap();
             events.push(entry);
         } else {
-            self.error("EventStorage", &format!("Failed to process event of type: {}", event_type));
+            self.error(
+                "EventStorage",
+                &format!("Failed to process event of type: {}", event_type),
+            );
         }
     }
 
@@ -182,7 +195,13 @@ impl EventStorage {
 }
 
 pub fn process_event(event: &Value, storage: &Arc<EventStorage>) {
-    let event_type = event.get("type").and_then(Value::as_str).unwrap_or("unknown");
-    storage.info("Processing", &format!("Received event of type: {}", event_type));
+    let event_type = event
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    storage.info(
+        "Processing",
+        &format!("Received event of type: {}", event_type),
+    );
     storage.add_event(event);
 }

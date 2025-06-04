@@ -18,7 +18,7 @@ pub async fn start_server(
     let listener = TcpListener::bind(addr).await?;
 
     let server_msg = format!("Server listening on {}", addr);
-    
+
     // Store server info in event storage for TUI to display
     event_storage.set_server_info(server_msg.clone());
     // Only log this once at startup
@@ -62,7 +62,7 @@ async fn handle_request(
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
                         .body(Full::new(Bytes::from(error_msg)))
-                        .unwrap())
+                        .unwrap());
                 }
             };
 
@@ -74,7 +74,7 @@ async fn handle_request(
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
                         .body(Full::new(Bytes::from(error_msg)))
-                        .unwrap())
+                        .unwrap());
                 }
             };
 
@@ -86,7 +86,7 @@ async fn handle_request(
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
                         .body(Full::new(Bytes::from(error_msg)))
-                        .unwrap())
+                        .unwrap());
                 }
             };
 
@@ -94,7 +94,10 @@ async fn handle_request(
                 for p in payloads_array {
                     process_event(p, &event_storage);
                 }
-                event_storage.info("Request", &format!("Processed {} payloads", payloads_array.len()));
+                event_storage.info(
+                    "Request",
+                    &format!("Processed {} payloads", payloads_array.len()),
+                );
                 Ok(Response::new(Full::new(Bytes::from("OK"))))
             } else {
                 let error_msg = "Invalid payload structure";
