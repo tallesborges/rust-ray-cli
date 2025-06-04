@@ -103,52 +103,65 @@ impl Render for MyApp {
                             )
                     )
                     .child(
-                        // Event list
+                        // Event list with scrolling
                         div()
                             .flex_1()
+                            .overflow_hidden()
                             .child(
-                                div()
-                                    .flex()
-                                    .flex_col()
-                                    .children(events.iter().enumerate().map(|(index, entry)| {
-                                        let is_selected = self.selected_row == Some(index);
-                                        let bg_color = if is_selected {
-                                            rgb(0x094771)
-                                        } else {
-                                            rgb(0x252526)
-                                        };
-                                        
-                                        div()
-                                            .flex()
-                                            .flex_col()
-                                            .p_2()
-                                            .bg(bg_color)
-                                            .hover(|style| style.bg(rgb(0x2a2d2e)))
-                                            .cursor_pointer()
-                                            .on_mouse_down(gpui::MouseButton::Left, cx.listener(move |this, _event, _window, cx| {
-                                                this.select_row(index, cx);
-                                            }))
-                                            .child(
-                                                div()
-                                                    .text_xs()
-                                                    .text_color(rgb(0x969696))
-                                                    .child(entry.timestamp.clone())
-                                            )
-                                            .child(
-                                                div()
-                                                    .text_sm()
-                                                    .font_weight(FontWeight::MEDIUM)
-                                                    .text_color(rgb(0xcccccc))
-                                                    .child(entry.label.clone())
-                                            )
-                                            .child(
-                                                div()
-                                                    .text_xs()
-                                                    .text_color(rgb(0x969696))
-                                                    .truncate()
-                                                    .child(entry.description.clone())
-                                            )
-                                    }))
+                                if events.is_empty() {
+                                    div()
+                                        .flex()
+                                        .items_center()
+                                        .justify_center()
+                                        .h_full()
+                                        .text_color(rgb(0x969696))
+                                        .child("No events yet...")
+                                } else {
+                                    div()
+                                        .flex()
+                                        .flex_col()
+                                        .h_full()
+                                        .children(events.iter().enumerate().map(|(index, entry)| {
+                                            let is_selected = self.selected_row == Some(index);
+                                            let bg_color = if is_selected {
+                                                rgb(0x094771)
+                                            } else {
+                                                rgb(0x252526)
+                                            };
+                                            
+                                            div()
+                                                .id(("event", index))
+                                                .flex()
+                                                .flex_col()
+                                                .p_2()
+                                                .bg(bg_color)
+                                                .hover(|style| style.bg(rgb(0x2a2d2e)))
+                                                .cursor_pointer()
+                                                .on_mouse_down(gpui::MouseButton::Left, cx.listener(move |this, _event, _window, cx| {
+                                                    this.select_row(index, cx);
+                                                }))
+                                                .child(
+                                                    div()
+                                                        .text_xs()
+                                                        .text_color(rgb(0x969696))
+                                                        .child(entry.timestamp.clone())
+                                                )
+                                                .child(
+                                                    div()
+                                                        .text_sm()
+                                                        .font_weight(FontWeight::MEDIUM)
+                                                        .text_color(rgb(0xcccccc))
+                                                        .child(entry.label.clone())
+                                                )
+                                                .child(
+                                                    div()
+                                                        .text_xs()
+                                                        .text_color(rgb(0x969696))
+                                                        .truncate()
+                                                        .child(entry.description.clone())
+                                                )
+                                        }))
+                                }
                             )
                     )
             )
@@ -158,6 +171,7 @@ impl Render for MyApp {
                     .flex_1()
                     .h_full()
                     .p_4()
+                    .overflow_hidden()
                     .child(
                         if let Some(index) = self.selected_row {
                             if let Some(entry) = events.get(index) {
