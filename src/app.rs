@@ -65,8 +65,7 @@ impl Render for MyApp {
         let events = self.payload_storage.get_events();
         self.total_rows = events.len();
 
-        let selected_entry = self.selected_row
-            .and_then(|index| events.get(index));
+        let selected_entry = self.selected_row.and_then(|index| events.get(index));
 
         div()
             .flex()

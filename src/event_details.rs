@@ -1,7 +1,10 @@
-use shared::EventEntry;
-use crate::ui_components::{background_color, border_color, styled_card, styled_label, styled_monospace, styled_value, text_monospace_color, text_secondary_color};
+use crate::ui_components::{
+    background_color, border_color, styled_card, styled_label, styled_monospace, styled_value,
+    text_monospace_color, text_secondary_color,
+};
 use gpui::prelude::*;
 use gpui::{div, Div, IntoElement};
+use shared::EventEntry;
 
 pub struct EventDetailsProps<'a> {
     pub selected_entry: Option<&'a EventEntry>,

@@ -1,8 +1,11 @@
 use crate::event_storage::EventStorage;
-use shared::EventEntry;
-use crate::ui_components::{border_color, hover_color, panel_background_color, selection_color, styled_button, text_primary_color, text_secondary_color};
+use crate::ui_components::{
+    border_color, hover_color, panel_background_color, selection_color, styled_button,
+    text_primary_color, text_secondary_color,
+};
 use gpui::prelude::*;
-use gpui::{div, uniform_list, AnyElement, Context, Div, FontWeight, IntoElement, UniformListScrollHandle};
+use gpui::{div, uniform_list, Context, Div, FontWeight, IntoElement, UniformListScrollHandle};
+use shared::EventEntry;
 use std::sync::Arc;
 
 pub fn render_event_list_panel(
@@ -12,7 +15,7 @@ pub fn render_event_list_panel(
     cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
     let events = payload_storage.get_events();
-    
+
     div()
         .flex()
         .flex_col()
@@ -59,7 +62,7 @@ fn render_event_list(
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
     cx: &mut Context<crate::app::MyApp>,
-) -> impl IntoElement {
+) -> Div {
     div()
         .flex_1()
         .overflow_hidden()
@@ -70,7 +73,7 @@ fn render_event_list(
         })
 }
 
-fn render_empty_state() -> impl IntoElement {
+fn render_empty_state() -> Div {
     div()
         .flex()
         .items_center()
@@ -85,50 +88,45 @@ fn render_event_uniform_list(
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
     cx: &mut Context<crate::app::MyApp>,
-) -> impl IntoElement {
-    div()
-        .size_full()
-        .child(
-            uniform_list(
-                cx.entity().clone(),
-                "event_list",
-                events.len(),
-                {
-                    let events = events.clone();
-                    move |_this, range, _window, cx| {
-                        range.map(|index| {
-                            let entry = &events[index];
-                            let is_selected = selected_row == Some(index);
-                            let bg_color = if is_selected {
-                                selection_color()
-                            } else {
-                                panel_background_color()
-                            };
+) -> Div {
+    div().size_full().child(
+        uniform_list(cx.entity().clone(), "event_list", events.len(), {
+            let events = events.clone();
+            move |_this, range, _window, cx| {
+                range
+                    .map(|index| {
+                        let entry = &events[index];
+                        let is_selected = selected_row == Some(index);
+                        let bg_color = if is_selected {
+                            selection_color()
+                        } else {
+                            panel_background_color()
+                        };
 
-                            div()
-                                .id(("event", index))
-                                .flex()
-                                .flex_col()
-                                .p_2()
-                                .bg(bg_color)
-                                .hover(|style| style.bg(hover_color()))
-                                .cursor_pointer()
-                                .on_mouse_down(
-                                    gpui::MouseButton::Left,
-                                    cx.listener(move |this, _event, _window, cx| {
-                                        this.select_row(index, cx);
-                                    }),
-                                )
-                                .child(render_event_timestamp(&entry.timestamp))
-                                .child(render_event_label(&entry.label))
-                                .child(render_event_description(&entry.description))
-                        }).collect()
-                    }
-                }
-            )
-            .size_full()
-            .track_scroll(scroll_handle.clone())
-        )
+                        div()
+                            .id(("event", index))
+                            .flex()
+                            .flex_col()
+                            .p_2()
+                            .bg(bg_color)
+                            .hover(|style| style.bg(hover_color()))
+                            .cursor_pointer()
+                            .on_mouse_down(
+                                gpui::MouseButton::Left,
+                                cx.listener(move |this, _event, _window, cx| {
+                                    this.select_row(index, cx);
+                                }),
+                            )
+                            .child(render_event_timestamp(&entry.timestamp))
+                            .child(render_event_label(&entry.label))
+                            .child(render_event_description(&entry.description))
+                    })
+                    .collect()
+            }
+        })
+        .size_full()
+        .track_scroll(scroll_handle.clone()),
+    )
 }
 
 fn render_event_timestamp(timestamp: &str) -> Div {
