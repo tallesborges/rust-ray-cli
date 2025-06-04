@@ -12,8 +12,7 @@ members = [
 serde = { version = "1.0.214", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 chrono = "0.4"
-eframe = { version = "0.31.1", features = ["default", "__screenshot"] }
-egui_extras = { version = "0.31.1", features = ["default", "image", "syntect"] }
+gpui = { git = "https://github.com/zed-industries/zed" }
 
 [package]
 name = "rust-ray-cli"
@@ -28,8 +27,7 @@ event-query = { path = "./crates/event-query" }
 event-exception = { path = "./crates/event-exception" }
 event-application-log = { path = "./crates/event-application-log" }
 # workspace
-eframe = { workspace = true }
-egui_extras = { workspace = true }
+gpui = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
 env_logger = { version = "0.11.5", default-features = false, features = [
@@ -44,7 +42,6 @@ bytes = "1.8.0"
 tl = "0.7.8"
 wasmtime = "26.0.1"
 anyhow = "1.0.93"
-egui_commonmark = { version = "0.20.0" }
 # TUI dependencies
 ratatui = "0.24.0"
 crossterm = "0.27.0"

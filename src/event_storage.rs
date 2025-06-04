@@ -1,11 +1,9 @@
 use chrono::Local;
-use eframe::egui;
 use serde_json::Value;
 use shared::{EventEntry, EventFactory};
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
-use crate::app;
 // use crate::event_factory::LocalEventFactory;
 use crate::wasm_event_factory::WasmEventFactory;
 
@@ -180,13 +178,6 @@ impl EventStorage {
     pub fn clear_events(&self) {
         let mut events = self.events.lock().unwrap();
         events.clear();
-    }
-
-    pub fn display_details(&self, ui: &mut egui::Ui, index: usize) {
-        let events = self.events.lock().unwrap();
-        if let Some(entry) = events.get(events.len() - 1 - index) {
-            app::display_code(ui, &entry.content);
-        }
     }
 }
 

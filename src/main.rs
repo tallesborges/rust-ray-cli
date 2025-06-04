@@ -6,8 +6,7 @@ mod server;
 mod tui;
 mod wasm_event_factory;
 
-use app::MyApp;
-use eframe::NativeOptions;
+use app::run_app;
 use event_storage::EventStorage;
 use server::start_server;
 use std::env;
@@ -55,27 +54,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         result
     } else {
-        // Run the eframe application
+        // Run the gpui application
         event_storage.info("Main", "Initializing GUI application");
-        let options = NativeOptions {
-            viewport: eframe::egui::ViewportBuilder::default().with_inner_size([800.0, 600.0]),
-            ..Default::default()
-        };
-
         event_storage.info("Main", "Starting GUI event loop");
-        let result = eframe::run_native(
-            "Payload Processing Server",
-            options,
-            Box::new(|cc| {
-                event_storage.info("Main", "Creating GUI application instance");
-                Ok(Box::new(MyApp::new(cc, event_storage)))
-            }),
-        );
         
-        if let Err(e) = &result {
-            eprintln!("Error running GUI: {}", e);
-        }
-        Ok(())
+        run_app(event_storage)
     }
 }
 
