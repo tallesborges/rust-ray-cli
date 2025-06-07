@@ -3,7 +3,7 @@ use crate::ui_components::{
     text_monospace_color, text_secondary_color,
 };
 use gpui::prelude::*;
-use gpui::{div, Div, IntoElement};
+use gpui::{div, Div, InteractiveText, IntoElement, StyledText};
 use shared::EventEntry;
 
 pub struct EventDetailsProps<'a> {
@@ -70,29 +70,40 @@ fn render_event_content(entry: &EventEntry) -> impl IntoElement {
 }
 
 fn render_json_content(content: &str) -> Div {
-    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
-        if let Ok(pretty) = serde_json::to_string_pretty(&parsed) {
-            styled_monospace().child(pretty)
-        } else {
-            styled_monospace().child(content.to_string())
-        }
+    let formatted_content = if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
+        serde_json::to_string_pretty(&parsed).unwrap_or_else(|_| content.to_string())
     } else {
-        styled_monospace().child(content.to_string())
-    }
+        content.to_string()
+    };
+
+    div()
+        .font_family("monospace")
+        .text_sm()
+        .text_color(text_monospace_color())
+        .child(InteractiveText::new(
+            "json-content",
+            StyledText::new(formatted_content),
+        ))
 }
 
 fn render_markdown_content(content: &str) -> Div {
     div()
         .text_sm()
         .text_color(text_monospace_color())
-        .child(content.to_string())
+        .child(InteractiveText::new(
+            "markdown-content",
+            StyledText::new(content.to_string()),
+        ))
 }
 
 fn render_plain_text_content(content: &str) -> Div {
     div()
         .text_sm()
         .text_color(text_monospace_color())
-        .child(content.to_string())
+        .child(InteractiveText::new(
+            "plain-content",
+            StyledText::new(content.to_string()),
+        ))
 }
 
 fn render_no_selection_state() -> Div {
