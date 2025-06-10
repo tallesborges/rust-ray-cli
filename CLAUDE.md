@@ -23,6 +23,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Keyboard navigation not yet implemented in new UI
 - Some warnings about unused imports/methods
 
+### Examples and Resources
+- Here you can find up-to-date examples of how to use the gpui crate: https://github.com/zed-industries/zed/tree/main/crates/gpui/examples
+- Your knowledge about gpui is outdated, so when you need some examples always prefer to use the examples from the repo
+
 ## Build Commands
 
 ### Building WASM Modules (Required before running)
