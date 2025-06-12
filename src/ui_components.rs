@@ -72,3 +72,16 @@ pub fn styled_monospace() -> Div {
         .text_sm()
         .text_color(text_monospace_color())
 }
+
+pub fn copy_button(text: String) -> Div {
+    div()
+        .px_2()
+        .py_1()
+        .bg(rgb(0x3c3c3c))
+        .rounded_sm()
+        .cursor_pointer()
+        .hover(|style| style.bg(rgb(0x4c4c4c)))
+        .text_color(text_secondary_color())
+        .text_xs()
+        .child("Copy")
+}

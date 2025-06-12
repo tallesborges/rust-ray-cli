@@ -4,7 +4,7 @@ use crate::event_storage::EventStorage;
 use crate::ui_components::background_color;
 use gpui::prelude::*;
 use gpui::{
-    actions, div, px, size, App, Application, Bounds, IntoElement, Render, TitlebarOptions,
+    actions, div, px, size, App, Application, Bounds, ClipboardItem, IntoElement, Render, TitlebarOptions,
     UniformListScrollHandle, Window, WindowBounds, WindowOptions,
 };
 use std::sync::Arc;
@@ -58,6 +58,10 @@ impl MyApp {
             }
         }
     }
+
+    pub fn copy_to_clipboard(&mut self, text: String, cx: &mut Context<Self>) {
+        cx.write_to_clipboard(ClipboardItem::new_string(text));
+    }
 }
 
 impl Render for MyApp {
@@ -79,7 +83,7 @@ impl Render for MyApp {
             ))
             .child(render_event_details_panel(EventDetailsProps {
                 selected_entry,
-            }))
+            }, cx))
     }
 }
 
