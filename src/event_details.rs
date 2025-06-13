@@ -70,14 +70,12 @@ fn render_header_row(label: &str, value: &str, cx: &mut Context<crate::app::MyAp
         ))
 }
 
-fn render_event_content(
-    entry: &EventEntry,
-    cx: &mut Context<crate::app::MyApp>,
-) -> impl IntoElement {
+fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
     let content_clone = entry.content.clone();
     div()
         .flex()
-        .h_full()
+        .flex_1()
+        .min_h_0()
         .flex_col()
         .gap_2()
         .child(
@@ -102,12 +100,14 @@ fn render_event_content(
         .child(
             div()
                 .id("event-content")
-                .overflow_y_scroll()
+                .flex_1()
+                .min_h_0()
                 .p_4()
                 .bg(background_color())
                 .rounded_lg()
                 .border_1()
                 .border_color(border_color())
+                .overflow_y_scroll()
                 .child(match entry.content_type.as_str() {
                     "json" => render_json_content(&entry.content),
                     "markdown" => render_markdown_content(&entry.content),
