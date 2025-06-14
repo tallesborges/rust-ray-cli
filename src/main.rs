@@ -5,32 +5,19 @@ mod event_factory;
 mod event_list;
 mod event_storage;
 mod server;
-mod tui;
 mod ui_components;
 mod wasm_event_factory;
 
 use app::run_app;
 use event_storage::EventStorage;
 use server::start_server;
-use std::env;
 use std::sync::Arc;
-use tui::TuiApp;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_storage = Arc::new(EventStorage::new());
 
-    // Check for command line arguments
-    let args: Vec<String> = env::args().collect();
-    let use_tui = args.len() > 1 && args[1] == "--tui";
-
-    // Set TUI mode before starting server
-    if use_tui {
-        event_storage.set_tui_mode(true);
-        event_storage.info("Main", "Starting in TUI mode");
-    } else {
-        event_storage.info("Main", "Starting in GUI mode");
-    }
+    event_storage.info("Main", "Starting in GUI mode");
 
     // Log system information
     event_storage.info("Main", &format!("OS: {}", std::env::consts::OS));
@@ -52,23 +39,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    if use_tui {
-        // Run the TUI application
-        event_storage.info("Main", "Initializing TUI application");
-        let mut tui_app = TuiApp::new(event_storage);
-        // TUI mode is already set
-        let result = tui_app.run();
-        if let Err(e) = &result {
-            eprintln!("Error running TUI: {}", e);
-        }
-        result
-    } else {
-        // Run the gpui application
-        event_storage.info("Main", "Initializing GUI application");
-        event_storage.info("Main", "Starting GUI event loop");
+    // Run the gpui application
+    event_storage.info("Main", "Initializing GUI application");
+    event_storage.info("Main", "Starting GUI event loop");
 
-        run_app(event_storage)
-    }
+    run_app(event_storage)
 }
 
 #[cfg(test)]

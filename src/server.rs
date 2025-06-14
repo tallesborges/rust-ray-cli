@@ -19,7 +19,7 @@ pub async fn start_server(
 
     let server_msg = format!("Server listening on {}", addr);
 
-    // Store server info in event storage for TUI to display
+    // Store server info in event storage for display
     event_storage.set_server_info(server_msg.clone());
     // Only log this once at startup
     event_storage.info("Server", &format!("Started and listening on {}", addr));

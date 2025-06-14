@@ -26,7 +26,6 @@ pub struct LogEntry {
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
     factory: Box<dyn EventFactory>,
-    in_tui_mode: Mutex<bool>,
     server_info: Mutex<String>,
     app_logs: Mutex<Vec<LogEntry>>, // Application logs with level and source
 }
@@ -36,7 +35,6 @@ impl EventStorage {
         Self {
             events: Mutex::new(Vec::new()),
             factory: Box::new(WasmEventFactory::default()),
-            in_tui_mode: Mutex::new(false),
             server_info: Mutex::new(String::new()),
             app_logs: Mutex::new(Vec::new()),
         }
@@ -63,9 +61,8 @@ impl EventStorage {
             }
         }
 
-        // In both TUI and non-TUI mode, we want to collect logs
-        // But only in non-TUI mode do we want to print to console
-        if !self.in_tui_mode() {
+        // Always print logs to console
+        {
             let level_str = match level {
                 LogLevel::Info => "INFO",
                 LogLevel::Warning => "WARN",
@@ -107,15 +104,6 @@ impl EventStorage {
         self.log(LogLevel::Debug, source, message);
     }
 
-    pub fn set_tui_mode(&self, enabled: bool) {
-        let mut mode = self.in_tui_mode.lock().unwrap();
-        *mode = enabled;
-    }
-
-    pub fn in_tui_mode(&self) -> bool {
-        let mode = self.in_tui_mode.lock().unwrap();
-        *mode
-    }
 
     pub fn set_server_info(&self, info: String) {
         let mut server_info = self.server_info.lock().unwrap();

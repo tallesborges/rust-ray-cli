@@ -2,7 +2,6 @@ use chrono::Local;
 use serde_json::Value;
 use shared::{EventEntry, EventFactory};
 use std::{
-    env,
     ffi::CStr,
     fs,
     io::{self, Write},
@@ -13,14 +12,10 @@ use wasmtime::{Engine, Instance, Module, Store};
 pub struct WasmEventFactory;
 
 impl WasmEventFactory {
-    fn is_tui_mode(&self) -> bool {
-        // Check if we're running in TUI mode
-        env::args().any(|arg| arg == "--tui")
-    }
 
     fn log_info(&self, message: &str) {
-        // Only log if not in TUI mode
-        if !self.is_tui_mode() {
+        // Always log to console
+        {
             let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
             let log_line = format!("[{}] [INFO] [WasmFactory] {}", timestamp, message);
 
@@ -31,8 +26,8 @@ impl WasmEventFactory {
     }
 
     fn log_error(&self, message: &str) {
-        // Only log if not in TUI mode
-        if !self.is_tui_mode() {
+        // Always log errors to console
+        {
             let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
             let log_line = format!("[{}] [ERROR] [WasmFactory] {}", timestamp, message);
 

@@ -16,7 +16,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ✅ UI rewritten using gpui's declarative syntax
 - ✅ Application builds and runs successfully
 - ✅ Server functionality preserved
-- ✅ TUI mode still available as fallback
 
 ### Known Issues
 - Some UI methods (overflow scrolling) were removed due to API differences
@@ -36,8 +35,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This compiles all event processor crates to WebAssembly modules in the `wasm-modules/` directory.
 
 ### Running the Application
-- GUI mode: `cargo run` (use `timeout 5s cargo run` for testing)
-- TUI mode: `cargo run -- --tui`
+- Run: `cargo run` (use `timeout 5s cargo run` for testing)
 
 ### Development Commands
 - Run tests: `cargo test`
@@ -54,7 +52,7 @@ This is a WASM-powered Ray event processor that receives debug events from Ray P
 1. **HTTP Server** (src/server.rs): Listens on port 23517 for Ray events
 2. **WASM Event Factory** (src/wasm_event_factory.rs): Loads and executes WASM modules based on event type
 3. **Event Storage** (src/event_storage.rs): Central storage with structured logging support
-4. **Dual UI**: GUI (src/app.rs) using egui/eframe and TUI (src/tui.rs) using ratatui
+4. **GUI**: (src/app.rs) using gpui framework
 
 ### Event Processing Flow
 
@@ -74,6 +72,6 @@ This is a WASM-powered Ray event processor that receives debug events from Ray P
 ### Key Design Decisions
 
 - **WASM Modules**: Enable hot-loading and sandboxed execution of event processors
-- **Dual Interface**: Support both desktop GUI and terminal environments
+- **GUI Interface**: macOS desktop application using gpui
 - **Structured Logging**: Events support multiple log levels (Info, Warning, Error, Debug)
 - **Markdown Support**: Application logs can render markdown content
