@@ -3,7 +3,7 @@ use crate::ui_components::{
     text_monospace_color, text_secondary_color,
 };
 use gpui::prelude::*;
-use gpui::{div, Context, Div, InteractiveText, IntoElement, StyledText};
+use gpui::{div, Context, Div, InteractiveText, StyledText};
 use crate::events::{EventEntry, get_ui_renderer};
 
 pub struct EventDetailsProps<'a> {

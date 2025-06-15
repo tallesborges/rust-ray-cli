@@ -8,23 +8,12 @@ use crate::events::{EventEntry, process_event as process_event_directly};
 #[derive(Clone, Debug, Copy)]
 pub enum LogLevel {
     Info,
-    Warning,
     Error,
-    Debug,
-}
-
-#[derive(Clone, Debug)]
-pub struct LogEntry {
-    pub timestamp: String,
-    pub level: LogLevel,
-    pub source: String,
-    pub message: String,
 }
 
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
     server_info: Mutex<String>,
-    app_logs: Mutex<Vec<LogEntry>>, // Application logs with level and source
 }
 
 impl EventStorage {
@@ -32,38 +21,18 @@ impl EventStorage {
         Self {
             events: Mutex::new(Vec::new()),
             server_info: Mutex::new(String::new()),
-            app_logs: Mutex::new(Vec::new()),
         }
     }
 
     // Central logging methods
     pub fn log(&self, level: LogLevel, source: &str, message: &str) {
         let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        let log_entry = LogEntry {
-            timestamp: timestamp.clone(),
-            level,
-            source: source.to_string(),
-            message: message.to_string(),
-        };
-
-        // Add to internal logs, maintaining a maximum size of 1000 entries
-        {
-            let mut logs = self.app_logs.lock().unwrap();
-            logs.push(log_entry.clone());
-
-            // Keep only the last 1000 logs
-            if logs.len() > 1000 {
-                logs.remove(0); // Remove oldest log
-            }
-        }
 
         // Always print logs to console
         {
             let level_str = match level {
                 LogLevel::Info => "INFO",
-                LogLevel::Warning => "WARN",
                 LogLevel::Error => "ERROR",
-                LogLevel::Debug => "DEBUG",
             };
 
             let log_line = format!("[{}] [{} {}] {}", timestamp, level_str, source, message);
@@ -88,47 +57,13 @@ impl EventStorage {
         self.log(LogLevel::Info, source, message);
     }
 
-    pub fn warn(&self, source: &str, message: &str) {
-        self.log(LogLevel::Warning, source, message);
-    }
-
     pub fn error(&self, source: &str, message: &str) {
         self.log(LogLevel::Error, source, message);
     }
 
-    pub fn debug(&self, source: &str, message: &str) {
-        self.log(LogLevel::Debug, source, message);
-    }
-
-
     pub fn set_server_info(&self, info: String) {
         let mut server_info = self.server_info.lock().unwrap();
         *server_info = info;
-    }
-
-    pub fn get_server_info(&self) -> String {
-        let server_info = self.server_info.lock().unwrap();
-        server_info.clone()
-    }
-
-    pub fn log_server_error(&self, error: String) {
-        self.error("Server", &error);
-    }
-
-    pub fn log_app_message(&self, message: String) {
-        self.info("App", &message);
-    }
-
-    pub fn get_app_logs(&self) -> Vec<LogEntry> {
-        let logs = self.app_logs.lock().unwrap();
-        logs.clone()
-    }
-
-    pub fn clear_logs(&self) {
-        let mut app_logs = self.app_logs.lock().unwrap();
-        app_logs.clear();
-
-        self.info("System", "All logs cleared");
     }
 
     // This method was not needed and could cause unsafe behavior

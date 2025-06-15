@@ -66,14 +66,8 @@ pub fn styled_value() -> Div {
         .text_color(text_primary_color())
 }
 
-pub fn styled_monospace() -> Div {
-    div()
-        .font_family("monospace")
-        .text_sm()
-        .text_color(text_monospace_color())
-}
 
-pub fn copy_button(text: String) -> Div {
+pub fn copy_button(_text: String) -> Div {
     div()
         .px_2()
         .py_1()

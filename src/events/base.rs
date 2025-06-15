@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde_json::Value;
-use gpui::{IntoElement, Context};
+use gpui::Context;
 
 /// Represents a processed event entry
 #[derive(Clone, Debug)]
@@ -18,9 +18,6 @@ pub struct EventEntry {
 pub trait EventProcessor: Send + Sync {
     /// Process a raw event payload into an EventEntry
     fn process(&self, payload: &Value) -> Result<EventEntry>;
-    
-    /// Get the display name for this event type
-    fn display_name(&self) -> &'static str;
 }
 
 /// Function type for custom event UI renderers

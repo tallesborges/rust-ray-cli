@@ -50,7 +50,4 @@ impl EventProcessor for ApplicationLogProcessor {
         Ok(entry)
     }
 
-    fn display_name(&self) -> &'static str {
-        "Application Log"
-    }
 }

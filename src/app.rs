@@ -41,23 +41,6 @@ impl MyApp {
         }
     }
 
-    pub fn move_selection_up(&mut self, _cx: &mut Context<Self>) {
-        if let Some(current) = self.selected_row {
-            if current > 0 {
-                self.selected_row = Some(current - 1);
-                _cx.notify();
-            }
-        }
-    }
-
-    pub fn move_selection_down(&mut self, _cx: &mut Context<Self>) {
-        if let Some(current) = self.selected_row {
-            if current + 1 < self.total_rows {
-                self.selected_row = Some(current + 1);
-                _cx.notify();
-            }
-        }
-    }
 
     pub fn copy_to_clipboard(&mut self, text: String, cx: &mut Context<Self>) {
         cx.write_to_clipboard(ClipboardItem::new_string(text));

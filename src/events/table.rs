@@ -42,9 +42,6 @@ impl EventProcessor for TableProcessor {
         Ok(entry)
     }
 
-    fn display_name(&self) -> &'static str {
-        "Table"
-    }
 }
 
 impl TableProcessor {
