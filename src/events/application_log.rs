@@ -1,4 +1,7 @@
 use crate::events::base::{extract_origin_info, extract_timestamp, EventEntry};
+use crate::events::processors::process_application_log_event;
+use crate::events::renderers::{render_application_log_markdown, get_application_log_label, get_application_log_description};
+use crate::events::types::ProcessedEvent;
 use anyhow::Result;
 use serde_json::Value;
 
@@ -14,34 +17,24 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
     };
 
     if let Some(content) = payload.get("content") {
-        let value = content
-            .get("value")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
+        // Process using the new architecture
+        let processed_event = process_application_log_event(content)?;
 
-        // Create a description from the log value (truncated if needed)
-        if !value.is_empty() {
-            entry.description = if value.len() > 50 {
-                format!("{}...", &value[..50].trim())
-            } else {
-                value.to_string()
-            };
+        // Render using the appropriate renderer
+        if let ProcessedEvent::ApplicationLog(ref app_log_event) = processed_event {
+            entry.content = render_application_log_markdown(app_log_event);
+            entry.label = get_application_log_label(app_log_event);
+            entry.description = get_application_log_description(app_log_event);
+        } else {
+            return Err(anyhow::anyhow!("Unexpected event type from application log processor"));
         }
 
-        // Create rich markdown content
-        let mut markdown = String::from("## Application Log\n\n");
-
-        // Add source information if available
+        // Add origin information if available
         if let Some(origin) = extract_origin_info(payload) {
-            markdown.push_str(&format!("**Source:** {}\n\n", origin));
+            entry
+                .content
+                .push_str(&format!("\n**Source:** {}\n", origin));
         }
-
-        // Add log content in a code block
-        markdown.push_str("### Log Content\n\n```\n");
-        markdown.push_str(value);
-        markdown.push_str("\n```\n");
-
-        entry.content = markdown;
     }
 
     Ok(entry)

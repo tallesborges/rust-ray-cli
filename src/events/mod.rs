@@ -5,10 +5,14 @@ pub mod application_log;
 pub mod base;
 pub mod exception;
 pub mod log;
+pub mod processors;
 pub mod query;
+pub mod renderers;
 pub mod table;
+pub mod types;
 
 pub use base::{EventEntry, EventProcessor, EventUIRenderer};
+pub use types::*;
 
 /// Create an event processor for the given event type
 pub fn create_processor(event_type: &str) -> Option<EventProcessor> {

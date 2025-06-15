@@ -1,4 +1,7 @@
 use crate::events::base::{extract_origin_info, extract_timestamp, EventEntry};
+use crate::events::processors::process_query_event;
+use crate::events::renderers::{render_query_markdown, get_query_label, get_query_description};
+use crate::events::types::ProcessedEvent;
 use crate::ui_components::{border_color, styled_card, text_monospace_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
@@ -17,68 +20,24 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
     };
 
     if let Some(content) = payload.get("content") {
-        let sql = content
-            .get("sql")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let connection = content
-            .get("connection_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let time = content
-            .get("time")
-            .and_then(|v| v.as_f64())
-            .unwrap_or_default();
+        // Process using the new architecture
+        let processed_event = process_query_event(content)?;
 
-        // Extract the SQL operation type (SELECT, INSERT, UPDATE, etc.)
-        let operation_type = if let Some(first_word) = sql.trim().split_whitespace().next() {
-            first_word.to_uppercase()
+        // Render using the appropriate renderer
+        if let ProcessedEvent::Query(ref query_event) = processed_event {
+            entry.content = render_query_markdown(query_event);
+            entry.label = get_query_label(query_event);
+            entry.description = get_query_description(query_event);
         } else {
-            "SQL".to_string()
-        };
-
-        // Generate a descriptive label
-        entry.label = format!("Query: {}", operation_type);
-
-        // Generate a more informative description from the SQL
-        let description_sql = if sql.len() > 50 {
-            format!("{}...", &sql[..50].trim())
-        } else {
-            sql.trim().to_string()
-        };
-        entry.description = format!("{} ({}ms)", description_sql, time);
-
-        // Create a rich markdown presentation
-        let mut markdown = String::from("## SQL Query\n\n");
-
-        // Add basic query information
-        markdown.push_str(&format!("**Operation:** {}\n\n", operation_type));
-        if !connection.is_empty() {
-            markdown.push_str(&format!("**Connection:** {}\n\n", connection));
+            return Err(anyhow::anyhow!("Unexpected event type from query processor"));
         }
 
-        // Format execution time with appropriate units
-        let time_display = if time < 1.0 {
-            format!("{:.3} ms", time)
-        } else if time < 1000.0 {
-            format!("{:.2} ms", time)
-        } else {
-            format!("{:.2} s", time / 1000.0)
-        };
-
-        markdown.push_str(&format!("**Execution Time:** {}\n\n", time_display));
-
-        // Add SQL in a code block with syntax highlighting
-        markdown.push_str("### Query\n\n```sql\n");
-        markdown.push_str(sql);
-        markdown.push_str("\n```\n");
-
-        // Add source information if available
+        // Add origin information if available
         if let Some(origin) = extract_origin_info(payload) {
-            markdown.push_str(&format!("\n**Source:** {}\n", origin));
+            entry
+                .content
+                .push_str(&format!("\n**Source:** {}\n", origin));
         }
-
-        entry.content = markdown;
     }
 
     Ok(entry)

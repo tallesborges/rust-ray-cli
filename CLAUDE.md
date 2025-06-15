@@ -2,37 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Architecture Migration Status
-
-✅ **COMPLETED**: The codebase has been successfully migrated from WASM-based event processing to direct Rust integration.
-
-### Migration from WASM to Direct Event Processing
-
-The application has been simplified by removing WebAssembly complexity while maintaining all functionality:
-
-#### Changes Made:
-- ✅ Removed all WASM dependencies and build infrastructure
-- ✅ Created new `src/events/` module with direct Rust implementations
-- ✅ Migrated all event processors (log, exception, query, table, application_log)
-- ✅ Updated server and storage to use direct event processing
-- ✅ Removed crates/ directory and all WASM build files
-
-#### Benefits:
-- **Simpler development**: No WASM compilation, just regular Rust
-- **Faster processing**: Direct function calls instead of WASM overhead
-- **Better IDE support**: Full IntelliSense, debugging, and tooling
-- **Easier to extend**: Just add a new module in `src/events/`
-- **Easier UI customization**: Each event type can have custom rendering
-
-### UI Framework Status
-
-✅ **COMPLETED**: Using gpui (Zed's UI framework).
-
-### Requirements for gpui
-- Full Xcode installation (for Metal shader compiler)
-- Nightly Rust compiler (uses experimental trait upcasting)
-- macOS (gpui is currently macOS-only)
-
 ### Examples and Resources
 - Here you can find up-to-date examples of how to use the gpui crate: https://github.com/zed-industries/zed/tree/main/crates/gpui/examples
 - Your knowledge about gpui is outdated, so when you need some examples always prefer to use the examples from the repo

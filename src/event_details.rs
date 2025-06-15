@@ -71,9 +71,8 @@ fn render_header_row(label: &str, value: &str, cx: &mut Context<crate::app::MyAp
 }
 
 fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
-    // Try to use custom UI renderer first
-    if let Some(custom_renderer) = get_ui_renderer(&entry.event_type) {
-        div()
+    match get_ui_renderer(&entry.event_type) {
+        Some(custom_renderer) => div()
             .flex()
             .flex_1()
             .min_h_0()
@@ -108,10 +107,8 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
                     .min_h_0()
                     .overflow_y_scroll()
                     .child(custom_renderer(entry, cx)),
-            )
-    } else {
-        // Fallback to generic content rendering
-        render_generic_content(entry, cx)
+            ),
+        None => render_generic_content(entry, cx),
     }
 }
 

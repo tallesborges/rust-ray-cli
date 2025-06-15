@@ -1,4 +1,7 @@
 use crate::events::base::{extract_origin_info, extract_timestamp, EventEntry};
+use crate::events::processors::process_log_event;
+use crate::events::renderers::{render_log_markdown, get_log_label, get_log_description};
+use crate::events::types::ProcessedEvent;
 use crate::ui_components::{
     background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
 };
@@ -18,33 +21,25 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
         raw_payload: payload.clone(),
     };
 
-    // Extract log values from content
     if let Some(content) = payload.get("content") {
-        if let Some(values) = content.get("values") {
-            if let Ok(pretty_json) = serde_json::to_string_pretty(values) {
-                entry.content = format!("```json\n{}\n```", pretty_json);
+        // Process using the new architecture
+        let processed_event = process_log_event(content)?;
 
-                // Create a short description for the list view
-                if let Some(first_value) = values.as_array().and_then(|arr| arr.first()) {
-                    entry.description = match first_value {
-                        Value::String(s) => s.clone(),
-                        _ => first_value.to_string(),
-                    };
-                    // Truncate long descriptions
-                    if entry.description.len() > 100 {
-                        entry.description.truncate(97);
-                        entry.description.push_str("...");
-                    }
-                }
-            }
+        // Render using the appropriate renderer
+        if let ProcessedEvent::Log(ref log_event) = processed_event {
+            entry.content = render_log_markdown(log_event);
+            entry.label = get_log_label(log_event);
+            entry.description = get_log_description(log_event);
+        } else {
+            return Err(anyhow::anyhow!("Unexpected event type from log processor"));
         }
-    }
 
-    // Add origin information if available
-    if let Some(origin) = extract_origin_info(payload) {
-        entry
-            .content
-            .push_str(&format!("\n\n**Source:** {}", origin));
+        // Add origin information if available
+        if let Some(origin) = extract_origin_info(payload) {
+            entry
+                .content
+                .push_str(&format!("\n\n**Source:** {}", origin));
+        }
     }
 
     Ok(entry)
