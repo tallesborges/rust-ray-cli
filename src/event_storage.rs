@@ -1,11 +1,9 @@
 use chrono::Local;
 use serde_json::Value;
-use shared::{EventEntry, EventFactory};
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
-// use crate::event_factory::LocalEventFactory;
-use crate::wasm_event_factory::WasmEventFactory;
+use crate::events::{EventEntry, process_event as process_event_directly};
 
 #[derive(Clone, Debug, Copy)]
 pub enum LogLevel {
@@ -25,7 +23,6 @@ pub struct LogEntry {
 
 pub struct EventStorage {
     events: Mutex<Vec<EventEntry>>,
-    factory: Box<dyn EventFactory>,
     server_info: Mutex<String>,
     app_logs: Mutex<Vec<LogEntry>>, // Application logs with level and source
 }
@@ -34,7 +31,6 @@ impl EventStorage {
     pub fn new() -> Self {
         Self {
             events: Mutex::new(Vec::new()),
-            factory: Box::new(WasmEventFactory::default()),
             server_info: Mutex::new(String::new()),
             app_logs: Mutex::new(Vec::new()),
         }
@@ -148,26 +144,29 @@ impl EventStorage {
             &format!("Processing event of type: {}", event_type),
         );
 
-        if let Some(mut entry) = self.factory.make(event) {
-            if entry.timestamp.is_empty() {
-                entry.timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+        match process_event_directly(event_type, event) {
+            Ok(mut entry) => {
+                if entry.timestamp.is_empty() {
+                    entry.timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+                }
+
+                self.info(
+                    "EventStorage",
+                    &format!(
+                        "Event processed successfully: {} ({})",
+                        entry.label, entry.content_type
+                    ),
+                );
+
+                let mut events = self.events.lock().unwrap();
+                events.push(entry);
             }
-
-            self.info(
-                "EventStorage",
-                &format!(
-                    "Event processed successfully: {} ({})",
-                    entry.label, entry.content_type
-                ),
-            );
-
-            let mut events = self.events.lock().unwrap();
-            events.push(entry);
-        } else {
-            self.error(
-                "EventStorage",
-                &format!("Failed to process event of type: {}", event_type),
-            );
+            Err(e) => {
+                self.error(
+                    "EventStorage",
+                    &format!("Failed to process event of type {}: {}", event_type, e),
+                );
+            }
         }
     }
 

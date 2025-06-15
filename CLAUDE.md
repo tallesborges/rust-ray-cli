@@ -2,37 +2,42 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## UI Framework Migration Status
+## Architecture Migration Status
 
-✅ **COMPLETED**: The codebase has been successfully migrated from egui to gpui (Zed's UI framework).
+✅ **COMPLETED**: The codebase has been successfully migrated from WASM-based event processing to direct Rust integration.
+
+### Migration from WASM to Direct Event Processing
+
+The application has been simplified by removing WebAssembly complexity while maintaining all functionality:
+
+#### Changes Made:
+- ✅ Removed all WASM dependencies and build infrastructure
+- ✅ Created new `src/events/` module with direct Rust implementations
+- ✅ Migrated all event processors (log, exception, query, table, application_log)
+- ✅ Updated server and storage to use direct event processing
+- ✅ Removed crates/ directory and all WASM build files
+
+#### Benefits:
+- **Simpler development**: No WASM compilation, just regular Rust
+- **Faster processing**: Direct function calls instead of WASM overhead
+- **Better IDE support**: Full IntelliSense, debugging, and tooling
+- **Easier to extend**: Just add a new module in `src/events/`
+- **Easier UI customization**: Each event type can have custom rendering
+
+### UI Framework Status
+
+✅ **COMPLETED**: Using gpui (Zed's UI framework).
 
 ### Requirements for gpui
 - Full Xcode installation (for Metal shader compiler)
 - Nightly Rust compiler (uses experimental trait upcasting)
 - macOS (gpui is currently macOS-only)
 
-### Current Status
-- ✅ Dependencies updated to use gpui from Zed repository
-- ✅ UI rewritten using gpui's declarative syntax
-- ✅ Application builds and runs successfully
-- ✅ Server functionality preserved
-
-### Known Issues
-- Some UI methods (overflow scrolling) were removed due to API differences
-- Keyboard navigation not yet implemented in new UI
-- Some warnings about unused imports/methods
-
 ### Examples and Resources
 - Here you can find up-to-date examples of how to use the gpui crate: https://github.com/zed-industries/zed/tree/main/crates/gpui/examples
 - Your knowledge about gpui is outdated, so when you need some examples always prefer to use the examples from the repo
 
 ## Build Commands
-
-### Building WASM Modules (Required before running)
-```bash
-./build-wasm.sh
-```
-This compiles all event processor crates to WebAssembly modules in the `wasm-modules/` directory.
 
 ### Running the Application
 - Run: `cargo run` (use `timeout 5s cargo run` for testing)
@@ -45,33 +50,62 @@ This compiles all event processor crates to WebAssembly modules in the `wasm-mod
 
 ## Architecture Overview
 
-This is a WASM-powered Ray event processor that receives debug events from Ray PHP/Laravel applications and processes them through dynamically loaded WebAssembly modules.
+This is a simplified Ray event processor that receives debug events from Ray PHP/Laravel applications and processes them through direct Rust implementations.
 
 ### Core Components
 
 1. **HTTP Server** (src/server.rs): Listens on port 23517 for Ray events
-2. **WASM Event Factory** (src/wasm_event_factory.rs): Loads and executes WASM modules based on event type
+2. **Event Processing** (src/events/): Direct Rust implementations for each event type
 3. **Event Storage** (src/event_storage.rs): Central storage with structured logging support
 4. **GUI**: (src/app.rs) using gpui framework
 
 ### Event Processing Flow
 
 1. Server receives JSON payload with event data
-2. Event type determines which WASM module to load from `wasm-modules/`
-3. WASM module processes event and returns `EventEntry`
+2. Event type is matched to a processor in `src/events/`
+3. Direct Rust function processes event and returns `EventEntry`
 4. Result is stored in EventStorage and displayed in UI
 
 ### Adding New Event Types
 
-1. Create new crate in `crates/` directory following existing pattern
-2. Implement `EventProcessor` trait with `no_std` compatibility
-3. Export required FFI functions: `process_event` and `free_string`
-4. Add crate to workspace in root `Cargo.toml`
-5. Run `./build-wasm.sh` to compile new module
+1. Create new module in `src/events/` directory following existing pattern:
+   ```
+   src/events/my_event/mod.rs
+   ```
+2. Implement `EventProcessor` trait:
+   ```rust
+   impl EventProcessor for MyEventProcessor {
+       fn process(&self, payload: &Value) -> Result<EventEntry> { ... }
+       fn display_name(&self) -> &'static str { "My Event" }
+   }
+   ```
+3. Add to the factory in `src/events/mod.rs`:
+   ```rust
+   "my_event" => Some(Box::new(my_event::MyEventProcessor)),
+   ```
 
 ### Key Design Decisions
 
-- **WASM Modules**: Enable hot-loading and sandboxed execution of event processors
+- **Direct Processing**: Simple Rust function calls for fast, debuggable event processing
 - **GUI Interface**: macOS desktop application using gpui
 - **Structured Logging**: Events support multiple log levels (Info, Warning, Error, Debug)
 - **Markdown Support**: Application logs can render markdown content
+
+# Rust coding guidelines
+
+* Prioritize code correctness and clarity. Speed and efficiency are secondary priorities unless otherwise specified.
+* Do not write organizational or comments that summarize the code. Comments should only be written in order to explain "why" the code is written in some way in the case there is a reason that is tricky / non-obvious.
+* Prefer implementing functionality in existing files unless it is a new logical component. Avoid creating many small files.
+* Avoid using functions that panic like `unwrap()`, instead use mechanisms like `?` to propagate errors.
+* Be careful with operations like indexing which may panic if the indexes are out of bounds.
+* Never silently discard errors with `let _ =` on fallible operations. Always handle errors appropriately:
+  - Propagate errors with `?` when the calling function should handle them
+  - Use `.log_err()` or similar when you need to ignore errors but want visibility
+  - Use explicit error handling with `match` or `if let Err(...)` when you need custom logic
+  - Example: avoid `let _ = client.request(...).await?;` - use `client.request(...).await?;` instead
+* When implementing async operations that may fail, ensure errors propagate to the UI layer so users get meaningful feedback.
+* Never create files with `mod.rs` paths - prefer `src/some_module.rs` instead of `src/some_module/mod.rs`.
+
+# GPUI
+
+GPUI is a UI framework which also provides primitives for state and concurrency management.

@@ -4,7 +4,7 @@ use crate::ui_components::{
 };
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, IntoElement, StyledText};
-use shared::EventEntry;
+use crate::events::EventEntry;
 
 pub struct EventDetailsProps<'a> {
     pub selected_entry: Option<&'a EventEntry>,

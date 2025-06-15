@@ -5,7 +5,7 @@ use crate::ui_components::{
 };
 use gpui::prelude::*;
 use gpui::{div, uniform_list, Context, Div, FontWeight, IntoElement, UniformListScrollHandle};
-use shared::EventEntry;
+use crate::events::EventEntry;
 use std::sync::Arc;
 
 pub fn render_event_list_panel(
