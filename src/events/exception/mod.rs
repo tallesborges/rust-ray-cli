@@ -2,6 +2,8 @@ use anyhow::Result;
 use serde_json::Value;
 use crate::events::base::{EventEntry, EventProcessor, extract_timestamp, extract_origin_info};
 
+pub mod ui;
+
 pub struct ExceptionProcessor;
 
 impl EventProcessor for ExceptionProcessor {
@@ -12,6 +14,8 @@ impl EventProcessor for ExceptionProcessor {
             description: String::new(),
             content: String::new(),
             content_type: "markdown".to_string(),
+            event_type: "exception".to_string(),
+            raw_payload: payload.clone(),
         };
 
         if let Some(content) = payload.get("content") {

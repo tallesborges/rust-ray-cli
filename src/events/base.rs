@@ -1,5 +1,6 @@
 use anyhow::Result;
 use serde_json::Value;
+use gpui::{IntoElement, Context};
 
 /// Represents a processed event entry
 #[derive(Clone, Debug)]
@@ -9,6 +10,8 @@ pub struct EventEntry {
     pub description: String,
     pub content: String,
     pub content_type: String,
+    pub event_type: String,      // Store the original event type
+    pub raw_payload: Value,      // Store the original payload for custom rendering
 }
 
 /// Trait for processing events
@@ -19,6 +22,9 @@ pub trait EventProcessor: Send + Sync {
     /// Get the display name for this event type
     fn display_name(&self) -> &'static str;
 }
+
+/// Function type for custom event UI renderers
+pub type EventUIRenderer = fn(&EventEntry, &mut Context<crate::app::MyApp>) -> gpui::Div;
 
 /// Helper function to extract timestamp from event payload
 pub fn extract_timestamp(payload: &Value) -> String {

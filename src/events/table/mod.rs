@@ -12,6 +12,8 @@ impl EventProcessor for TableProcessor {
             description: String::new(),
             content: String::new(),
             content_type: "markdown".to_string(),
+            event_type: "table".to_string(),
+            raw_payload: payload.clone(),
         };
 
         if let Some(content) = payload.get("content") {

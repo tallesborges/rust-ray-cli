@@ -4,7 +4,7 @@ use crate::ui_components::{
 };
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, IntoElement, StyledText};
-use crate::events::EventEntry;
+use crate::events::{EventEntry, get_ui_renderer};
 
 pub struct EventDetailsProps<'a> {
     pub selected_entry: Option<&'a EventEntry>,
@@ -71,6 +71,51 @@ fn render_header_row(label: &str, value: &str, cx: &mut Context<crate::app::MyAp
 }
 
 fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
+    // Try to use custom UI renderer first
+    if let Some(custom_renderer) = get_ui_renderer(&entry.event_type) {
+        div()
+            .flex()
+            .flex_1()
+            .min_h_0()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .flex()
+                    .justify_between()
+                    .items_center()
+                    .pb_2()
+                    .child(
+                        div()
+                            .text_sm()
+                            .text_color(text_secondary_color())
+                            .child("Event Details"),
+                    )
+                    .child(copy_button(entry.content.clone()).on_mouse_down(
+                        gpui::MouseButton::Left,
+                        cx.listener({
+                            let content_clone = entry.content.clone();
+                            move |this, _event, _window, cx| {
+                                this.copy_to_clipboard(content_clone.clone(), cx);
+                            }
+                        }),
+                    )),
+            )
+            .child(
+                div()
+                    .id("event-content")
+                    .flex_1()
+                    .min_h_0()
+                    .overflow_y_scroll()
+                    .child(custom_renderer(entry, cx))
+            )
+    } else {
+        // Fallback to generic content rendering
+        render_generic_content(entry, cx)
+    }
+}
+
+fn render_generic_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
     let content_clone = entry.content.clone();
     div()
         .flex()
