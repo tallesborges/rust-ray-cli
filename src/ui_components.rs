@@ -66,7 +66,6 @@ pub fn styled_value() -> Div {
         .text_color(text_primary_color())
 }
 
-
 pub fn copy_button(_text: String) -> Div {
     div()
         .px_2()

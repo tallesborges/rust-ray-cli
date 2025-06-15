@@ -1,56 +1,53 @@
-use anyhow::Result;
-use serde_json::Value;
-use crate::events::base::{EventEntry, EventProcessor, extract_timestamp, extract_origin_info};
+use crate::events::base::{extract_origin_info, extract_timestamp, EventEntry};
 use crate::ui_components::{
     background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
 };
+use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, StyledText};
+use serde_json::Value;
 
-pub struct LogProcessor;
+pub fn process(payload: &Value) -> Result<EventEntry> {
+    let mut entry = EventEntry {
+        timestamp: extract_timestamp(payload),
+        label: "log".to_string(),
+        description: String::new(),
+        content: String::new(),
+        content_type: "markdown".to_string(),
+        event_type: "log".to_string(),
+        raw_payload: payload.clone(),
+    };
 
-impl EventProcessor for LogProcessor {
-    fn process(&self, payload: &Value) -> Result<EventEntry> {
-        let mut entry = EventEntry {
-            timestamp: extract_timestamp(payload),
-            label: "log".to_string(),
-            description: String::new(),
-            content: String::new(),
-            content_type: "markdown".to_string(),
-            event_type: "log".to_string(),
-            raw_payload: payload.clone(),
-        };
+    // Extract log values from content
+    if let Some(content) = payload.get("content") {
+        if let Some(values) = content.get("values") {
+            if let Ok(pretty_json) = serde_json::to_string_pretty(values) {
+                entry.content = format!("```json\n{}\n```", pretty_json);
 
-        // Extract log values from content
-        if let Some(content) = payload.get("content") {
-            if let Some(values) = content.get("values") {
-                if let Ok(pretty_json) = serde_json::to_string_pretty(values) {
-                    entry.content = format!("```json\n{}\n```", pretty_json);
-                    
-                    // Create a short description for the list view
-                    if let Some(first_value) = values.as_array().and_then(|arr| arr.first()) {
-                        entry.description = match first_value {
-                            Value::String(s) => s.clone(),
-                            _ => first_value.to_string(),
-                        };
-                        // Truncate long descriptions
-                        if entry.description.len() > 100 {
-                            entry.description.truncate(97);
-                            entry.description.push_str("...");
-                        }
+                // Create a short description for the list view
+                if let Some(first_value) = values.as_array().and_then(|arr| arr.first()) {
+                    entry.description = match first_value {
+                        Value::String(s) => s.clone(),
+                        _ => first_value.to_string(),
+                    };
+                    // Truncate long descriptions
+                    if entry.description.len() > 100 {
+                        entry.description.truncate(97);
+                        entry.description.push_str("...");
                     }
                 }
             }
         }
-
-        // Add origin information if available
-        if let Some(origin) = extract_origin_info(payload) {
-            entry.content.push_str(&format!("\n\n**Source:** {}", origin));
-        }
-
-        Ok(entry)
     }
 
+    // Add origin information if available
+    if let Some(origin) = extract_origin_info(payload) {
+        entry
+            .content
+            .push_str(&format!("\n\n**Source:** {}", origin));
+    }
+
+    Ok(entry)
 }
 
 pub fn render_log_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
@@ -64,49 +61,43 @@ pub fn render_log_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>
 }
 
 fn render_log_header(_entry: &EventEntry) -> Div {
-    styled_card()
-        .p_3()
-        .child(
-            div()
-                .text_sm()
-                .font_weight(gpui::FontWeight::BOLD)
-                .text_color(text_secondary_color())
-                .child("📝 Log Event")
-        )
+    styled_card().p_3().child(
+        div()
+            .text_sm()
+            .font_weight(gpui::FontWeight::BOLD)
+            .text_color(text_secondary_color())
+            .child("📝 Log Event"),
+    )
 }
 
 fn render_log_values(entry: &EventEntry) -> Div {
-    let values = entry.raw_payload
+    let values = entry
+        .raw_payload
         .get("content")
         .and_then(|c| c.get("values"))
         .cloned()
         .unwrap_or(Value::Array(vec![]));
 
-    styled_card()
-        .p_4()
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .gap_3()
-                .child(
-                    div()
-                        .text_sm()
-                        .font_weight(gpui::FontWeight::BOLD)
-                        .text_color(text_secondary_color())
-                        .child("Values")
-                )
-                .child(render_values_list(&values))
-        )
+    styled_card().p_4().child(
+        div()
+            .flex()
+            .flex_col()
+            .gap_3()
+            .child(
+                div()
+                    .text_sm()
+                    .font_weight(gpui::FontWeight::BOLD)
+                    .text_color(text_secondary_color())
+                    .child("Values"),
+            )
+            .child(render_values_list(&values)),
+    )
 }
 
 fn render_values_list(values: &Value) -> Div {
     match values {
         Value::Array(arr) => {
-            let mut container = div()
-                .flex()
-                .flex_col()
-                .gap_2();
+            let mut container = div().flex().flex_col().gap_2();
 
             for (index, value) in arr.iter().enumerate() {
                 container = container.child(render_single_value(index, value));
@@ -114,7 +105,7 @@ fn render_values_list(values: &Value) -> Div {
 
             container
         }
-        _ => render_single_value(0, values)
+        _ => render_single_value(0, values),
     }
 }
 
@@ -141,19 +132,17 @@ fn render_single_value(index: usize, value: &Value) -> Div {
                 .flex()
                 .items_center()
                 .justify_center()
-                .child((index + 1).to_string())
+                .child((index + 1).to_string()),
         )
         .child(
             // Value content
-            div()
-                .flex_1()
-                .child(match value {
-                    Value::String(s) => render_string_value(s),
-                    Value::Number(n) => render_number_value(n),
-                    Value::Bool(b) => render_bool_value(*b),
-                    Value::Null => render_null_value(),
-                    Value::Object(_) | Value::Array(_) => render_complex_value(value),
-                })
+            div().flex_1().child(match value {
+                Value::String(s) => render_string_value(s),
+                Value::Number(n) => render_number_value(n),
+                Value::Bool(b) => render_bool_value(*b),
+                Value::Null => render_null_value(),
+                Value::Object(_) | Value::Array(_) => render_complex_value(value),
+            }),
         )
 }
 
@@ -175,7 +164,11 @@ fn render_number_value(n: &serde_json::Number) -> Div {
 fn render_bool_value(b: bool) -> Div {
     div()
         .text_sm()
-        .text_color(if b { gpui::rgb(0x10b981) } else { gpui::rgb(0xef4444) }) // Green/Red
+        .text_color(if b {
+            gpui::rgb(0x10b981)
+        } else {
+            gpui::rgb(0xef4444)
+        }) // Green/Red
         .font_weight(gpui::FontWeight::BOLD)
         .child(b.to_string())
 }
@@ -190,7 +183,7 @@ fn render_null_value() -> Div {
 
 fn render_complex_value(value: &Value) -> Div {
     let formatted = serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
-    
+
     div()
         .max_h_32()
         .overflow_hidden()
@@ -205,38 +198,42 @@ fn render_complex_value(value: &Value) -> Div {
                 .child(InteractiveText::new(
                     "complex-value",
                     StyledText::new(formatted),
-                ))
+                )),
         )
 }
 
 fn render_origin_info(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {
         let file = origin.get("file").and_then(|f| f.as_str()).unwrap_or("");
-        let line = origin.get("line_number").and_then(|l| l.as_u64()).unwrap_or(0);
-        let hostname = origin.get("hostname").and_then(|h| h.as_str()).unwrap_or("");
+        let line = origin
+            .get("line_number")
+            .and_then(|l| l.as_u64())
+            .unwrap_or(0);
+        let hostname = origin
+            .get("hostname")
+            .and_then(|h| h.as_str())
+            .unwrap_or("");
 
         if !file.is_empty() {
-            styled_card()
-                .p_3()
-                .child(
-                    div()
-                        .flex()
-                        .flex_col()
-                        .gap_2()
-                        .child(
-                            div()
-                                .text_sm()
-                                .font_weight(gpui::FontWeight::BOLD)
-                                .text_color(text_secondary_color())
-                                .child("🔍 Source")
-                        )
-                        .child(
-                            div()
-                                .text_xs()
-                                .text_color(text_monospace_color())
-                                .child(format!("{}:{} on {}", file, line, hostname))
-                        )
-                )
+            styled_card().p_3().child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap_2()
+                    .child(
+                        div()
+                            .text_sm()
+                            .font_weight(gpui::FontWeight::BOLD)
+                            .text_color(text_secondary_color())
+                            .child("🔍 Source"),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(text_monospace_color())
+                            .child(format!("{}:{} on {}", file, line, hostname)),
+                    ),
+            )
         } else {
             div() // Empty div if no origin info
         }

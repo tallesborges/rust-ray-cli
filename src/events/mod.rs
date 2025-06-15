@@ -1,23 +1,23 @@
 use anyhow::Result;
 use serde_json::Value;
 
+pub mod application_log;
 pub mod base;
-pub mod log;
 pub mod exception;
+pub mod log;
 pub mod query;
 pub mod table;
-pub mod application_log;
 
 pub use base::{EventEntry, EventProcessor, EventUIRenderer};
 
 /// Create an event processor for the given event type
-pub fn create_processor(event_type: &str) -> Option<Box<dyn EventProcessor>> {
+pub fn create_processor(event_type: &str) -> Option<EventProcessor> {
     match event_type {
-        "log" => Some(Box::new(log::LogProcessor)),
-        "exception" => Some(Box::new(exception::ExceptionProcessor)),
-        "query" | "executed_query" => Some(Box::new(query::QueryProcessor)),
-        "table" => Some(Box::new(table::TableProcessor)),
-        "application_log" => Some(Box::new(application_log::ApplicationLogProcessor)),
+        "log" => Some(EventProcessor::Log),
+        "exception" => Some(EventProcessor::Exception),
+        "query" | "executed_query" => Some(EventProcessor::Query),
+        "table" => Some(EventProcessor::Table),
+        "application_log" => Some(EventProcessor::ApplicationLog),
         _ => None,
     }
 }

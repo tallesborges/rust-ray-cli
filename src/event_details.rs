@@ -1,10 +1,10 @@
+use crate::events::{get_ui_renderer, EventEntry};
 use crate::ui_components::{
     background_color, border_color, copy_button, styled_card, styled_label, styled_value,
     text_monospace_color, text_secondary_color,
 };
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, StyledText};
-use crate::events::{EventEntry, get_ui_renderer};
 
 pub struct EventDetailsProps<'a> {
     pub selected_entry: Option<&'a EventEntry>,
@@ -107,7 +107,7 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
                     .flex_1()
                     .min_h_0()
                     .overflow_y_scroll()
-                    .child(custom_renderer(entry, cx))
+                    .child(custom_renderer(entry, cx)),
             )
     } else {
         // Fallback to generic content rendering

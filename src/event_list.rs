@@ -1,11 +1,11 @@
 use crate::event_storage::EventStorage;
+use crate::events::EventEntry;
 use crate::ui_components::{
     border_color, hover_color, panel_background_color, selection_color, styled_button,
     text_primary_color, text_secondary_color,
 };
 use gpui::prelude::*;
 use gpui::{div, uniform_list, Context, Div, FontWeight, IntoElement, UniformListScrollHandle};
-use crate::events::EventEntry;
 use std::sync::Arc;
 
 pub fn render_event_list_panel(

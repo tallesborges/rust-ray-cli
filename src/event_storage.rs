@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
-use crate::events::{EventEntry, process_event as process_event_directly};
+use crate::events::{process_event as process_event_directly, EventEntry};
 
 #[derive(Clone, Debug, Copy)]
 pub enum LogLevel {
