@@ -1,10 +1,9 @@
 use crate::events::{get_ui_renderer, EventEntry};
 use crate::ui_components::{
-    background_color, border_color, copy_button, styled_card, styled_label, styled_value,
-    text_monospace_color, text_secondary_color,
+    copy_button, styled_card, styled_label, styled_value, text_secondary_color,
 };
 use gpui::prelude::*;
-use gpui::{div, Context, Div, InteractiveText, StyledText};
+use gpui::{div, Context, Div};
 
 pub struct EventDetailsProps<'a> {
     pub selected_entry: Option<&'a EventEntry>,
@@ -71,49 +70,10 @@ fn render_header_row(label: &str, value: &str, cx: &mut Context<crate::app::MyAp
 }
 
 fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
-    match get_ui_renderer(&entry.event_type) {
-        Some(custom_renderer) => div()
-            .flex()
-            .flex_1()
-            .min_h_0()
-            .flex_col()
-            .gap_2()
-            .child(
-                div()
-                    .flex()
-                    .justify_between()
-                    .items_center()
-                    .pb_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .text_color(text_secondary_color())
-                            .child("Event Details"),
-                    )
-                    .child(copy_button(entry.content.clone()).on_mouse_down(
-                        gpui::MouseButton::Left,
-                        cx.listener({
-                            let content_clone = entry.content.clone();
-                            move |this, _event, _window, cx| {
-                                this.copy_to_clipboard(content_clone.clone(), cx);
-                            }
-                        }),
-                    )),
-            )
-            .child(
-                div()
-                    .id("event-content")
-                    .flex_1()
-                    .min_h_0()
-                    .overflow_y_scroll()
-                    .child(custom_renderer(entry, cx)),
-            ),
-        None => render_generic_content(entry, cx),
-    }
-}
+    // All event types now have custom UI renderers
+    let custom_renderer = get_ui_renderer(&entry.event_type)
+        .expect("All event types should have custom UI renderers");
 
-fn render_generic_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
-    let content_clone = entry.content.clone();
     div()
         .flex()
         .flex_1()
@@ -130,69 +90,33 @@ fn render_generic_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp
                     div()
                         .text_sm()
                         .text_color(text_secondary_color())
-                        .child("Content"),
+                        .child("Event Details"),
                 )
-                .child(copy_button(entry.content.clone()).on_mouse_down(
-                    gpui::MouseButton::Left,
-                    cx.listener(move |this, _event, _window, cx| {
-                        this.copy_to_clipboard(content_clone.clone(), cx);
-                    }),
-                )),
+                .child(
+                    copy_button(
+                        serde_json::to_string_pretty(&entry.raw_payload).unwrap_or_default(),
+                    )
+                    .on_mouse_down(
+                        gpui::MouseButton::Left,
+                        cx.listener({
+                            let payload_clone = entry.raw_payload.clone();
+                            move |this, _event, _window, cx| {
+                                let content = serde_json::to_string_pretty(&payload_clone)
+                                    .unwrap_or_default();
+                                this.copy_to_clipboard(content, cx);
+                            }
+                        }),
+                    ),
+                ),
         )
         .child(
             div()
                 .id("event-content")
                 .flex_1()
                 .min_h_0()
-                .p_4()
-                .bg(background_color())
-                .rounded_lg()
-                .border_1()
-                .border_color(border_color())
                 .overflow_y_scroll()
-                .child(match entry.content_type.as_str() {
-                    "json" => render_json_content(&entry.content),
-                    "markdown" => render_markdown_content(&entry.content),
-                    _ => render_plain_text_content(&entry.content),
-                }),
+                .child(custom_renderer(entry, cx)),
         )
-}
-
-fn render_json_content(content: &str) -> Div {
-    let formatted_content = if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
-        serde_json::to_string_pretty(&parsed).unwrap_or_else(|_| content.to_string())
-    } else {
-        content.to_string()
-    };
-
-    div()
-        .font_family("monospace")
-        .text_sm()
-        .text_color(text_monospace_color())
-        .child(InteractiveText::new(
-            "json-content",
-            StyledText::new(formatted_content),
-        ))
-}
-
-fn render_markdown_content(content: &str) -> Div {
-    div()
-        .text_sm()
-        .text_color(text_monospace_color())
-        .child(InteractiveText::new(
-            "markdown-content",
-            StyledText::new(content.to_string()),
-        ))
-}
-
-fn render_plain_text_content(content: &str) -> Div {
-    div()
-        .text_sm()
-        .text_color(text_monospace_color())
-        .child(InteractiveText::new(
-            "plain-content",
-            StyledText::new(content.to_string()),
-        ))
 }
 
 fn render_no_selection_state() -> Div {

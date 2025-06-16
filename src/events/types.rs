@@ -14,6 +14,7 @@ pub enum ProcessedEvent {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct CacheEvent {
     pub operation: String, // "Hit", "Missed", "Key written", "Forgotten", etc.
     pub key: String,
@@ -25,6 +26,7 @@ pub struct CacheEvent {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct HttpEvent {
     pub event_type: HttpEventType,
     pub url: String,
@@ -47,12 +49,14 @@ pub enum HttpEventType {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct TableEvent {
     pub label: String,
     pub data: HashMap<String, Value>,
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct LogEvent {
     pub level: String,
     pub message: String,
@@ -60,6 +64,7 @@ pub struct LogEvent {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct QueryEvent {
     pub sql: String,
     pub bindings: Vec<Value>,
@@ -69,6 +74,7 @@ pub struct QueryEvent {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct ExceptionEvent {
     pub class: String,
     pub message: String,
@@ -79,6 +85,7 @@ pub struct ExceptionEvent {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct StackFrame {
     pub file: String,
     pub line: u64,
@@ -87,6 +94,7 @@ pub struct StackFrame {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct ApplicationLogEvent {
     pub level: String,
     pub message: String,
@@ -94,25 +102,3 @@ pub struct ApplicationLogEvent {
     pub channel: Option<String>,
 }
 
-/// Common event metadata that all events share
-#[derive(Clone, Debug)]
-pub struct EventMetadata {
-    pub timestamp: String,
-    pub event_type: String,
-    pub origin: Option<OriginInfo>,
-    pub raw_payload: Value,
-}
-
-#[derive(Clone, Debug)]
-pub struct OriginInfo {
-    pub file: String,
-    pub line: u64,
-    pub hostname: String,
-}
-
-/// Final processed event entry with structured data and metadata
-#[derive(Clone, Debug)]
-pub struct ProcessedEventEntry {
-    pub metadata: EventMetadata,
-    pub event: ProcessedEvent,
-}

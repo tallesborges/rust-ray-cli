@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::events::{process_event, EventEntry};
+    use crate::events::process_event;
     use serde_json::json;
 
     #[test]
@@ -61,8 +61,8 @@ mod tests {
 
         let result = process_event("application_log", &test_event).unwrap();
         assert_eq!(result.label, "Application Log");
-        assert!(result.content.contains("Test application log message"));
-        assert_eq!(result.content_type, "markdown");
+        assert_eq!(result.description, "Test application log message");
+        assert_eq!(result.content_type, "custom_ui");
     }
 
     #[test]
@@ -75,8 +75,8 @@ mod tests {
         });
 
         let result = process_event("log", &test_event).unwrap();
-        assert_eq!(result.label, "log");
-        assert!(result.content.contains("Test log message"));
-        assert_eq!(result.content_type, "markdown");
+        assert_eq!(result.label, "Log");
+        assert_eq!(result.description, "Test log message");
+        assert_eq!(result.content_type, "custom_ui");
     }
 }

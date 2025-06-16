@@ -1,6 +1,5 @@
-use crate::events::base::{extract_origin_info, extract_timestamp, EventEntry};
+use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::process_exception_event;
-use crate::events::renderers::{render_exception_markdown, get_exception_label, get_exception_description};
 use crate::events::types::ProcessedEvent;
 use crate::ui_components::{
     background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
@@ -15,8 +14,7 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
         timestamp: extract_timestamp(payload),
         label: "Exception".to_string(),
         description: String::new(),
-        content: String::new(),
-        content_type: "markdown".to_string(),
+        content_type: "custom_ui".to_string(),
         event_type: "exception".to_string(),
         raw_payload: payload.clone(),
     };
@@ -25,20 +23,23 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
         // Process using the new architecture
         let processed_event = process_exception_event(content)?;
 
-        // Render using the appropriate renderer
+        // Set labels and descriptions based on processed event
         if let ProcessedEvent::Exception(ref exception_event) = processed_event {
-            entry.content = render_exception_markdown(exception_event);
-            entry.label = get_exception_label(exception_event);
-            entry.description = get_exception_description(exception_event);
+            entry.label = "Exception".to_string();
+            let description = if !exception_event.message.is_empty() {
+                format!("{}: {}", exception_event.class, exception_event.message)
+            } else {
+                exception_event.class.clone()
+            };
+
+            // Truncate long descriptions
+            if description.len() > 100 {
+                entry.description = format!("{}...", &description[..97]);
+            } else {
+                entry.description = description;
+            }
         } else {
             return Err(anyhow::anyhow!("Unexpected event type from exception processor"));
-        }
-
-        // Add origin information if available
-        if let Some(origin) = extract_origin_info(payload) {
-            entry
-                .content
-                .push_str(&format!("\n**Source:** {}\n", origin));
         }
     }
 
