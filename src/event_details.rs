@@ -1,6 +1,6 @@
 use crate::events::{get_ui_renderer, EventEntry};
 use crate::ui_components::{
-    copy_button, styled_card, styled_label, styled_value, text_secondary_color,
+    copy_button, text_primary_color, text_secondary_color,
 };
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
@@ -16,7 +16,8 @@ pub fn render_event_details_panel(
     div()
         .flex_1()
         .h_full()
-        .p_4()
+        .px_8()
+        .py_6()
         .overflow_hidden()
         .child(match props.selected_entry {
             Some(entry) => render_event_details(entry, cx),
@@ -28,38 +29,54 @@ fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
     div()
         .flex()
         .flex_col()
-        .gap_4()
+        .gap_6()
         .h_full()
         .child(render_event_header(entry, cx))
         .child(render_event_content(entry, cx))
 }
 
 fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
-    styled_card()
+    div()
         .flex()
         .flex_col()
-        .gap_2()
-        .child(render_header_row("Label:", &entry.label, cx))
-        .child(render_header_row("Time:", &entry.timestamp, cx))
-        .child(render_header_row("Type:", &entry.content_type, cx))
+        .gap_3()
+        .pb_6()
+        .border_b_1()
+        .border_color(crate::ui_components::border_color())
+        .child(
+            div()
+                .text_lg()
+                .text_color(text_primary_color())
+                .child(entry.label.clone())
+        )
+        .child(
+            div()
+                .flex()
+                .flex_row()
+                .gap_6()
+                .child(render_metadata_item("time", &entry.timestamp, cx))
+                .child(render_metadata_item("type", &entry.content_type, cx))
+        )
 }
 
-fn render_header_row(label: &str, value: &str, cx: &mut Context<crate::app::MyApp>) -> Div {
+fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::app::MyApp>) -> Div {
     let value_clone = value.to_string();
     div()
         .flex()
         .flex_row()
         .gap_2()
         .items_center()
-        .justify_between()
         .child(
             div()
-                .flex()
-                .flex_row()
-                .gap_2()
-                .items_center()
-                .child(styled_label().child(label.to_string()))
-                .child(styled_value().child(value.to_string())),
+                .text_xs()
+                .text_color(text_secondary_color())
+                .child(label.to_string())
+        )
+        .child(
+            div()
+                .text_xs()
+                .text_color(text_primary_color())
+                .child(value.to_string())
         )
         .child(copy_button(value.to_string()).on_mouse_down(
             gpui::MouseButton::Left,
@@ -83,15 +100,9 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
         .child(
             div()
                 .flex()
-                .justify_between()
+                .flex_row()
                 .items_center()
-                .pb_2()
-                .child(
-                    div()
-                        .text_sm()
-                        .text_color(text_secondary_color())
-                        .child("Event Details"),
-                )
+                .gap_2()
                 .child(
                     copy_button(
                         serde_json::to_string_pretty(&entry.raw_payload).unwrap_or_default(),
@@ -107,6 +118,12 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
                             }
                         }),
                     ),
+                )
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(text_secondary_color())
+                        .child("raw payload")
                 ),
         )
         .child(

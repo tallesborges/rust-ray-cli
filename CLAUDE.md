@@ -33,7 +33,7 @@ A macOS desktop application that receives debug events from Ray PHP/Laravel appl
 This codebase uses a **three-layer Event-Processor-Renderer architecture**:
 
 ```
-JSON Event → Processor → Structured Data → Renderer → Markdown/UI
+JSON Event → Processor → Structured Data → UI Renderer → gpui Components
 ```
 
 #### Layer 1: Event Processors (`src/events/processors/`)
@@ -45,17 +45,17 @@ JSON Event → Processor → Structured Data → Renderer → Markdown/UI
 - **Purpose:** Clean data structures without presentation logic
 - **Types:** `CacheEvent`, `HttpEvent`, `LogEvent`, `QueryEvent`, `ExceptionEvent`, `ApplicationLogEvent`, `TableEvent`
 
-#### Layer 3: Event Renderers (`src/events/renderers/`)
-- **Purpose:** Pure presentation logic, converts structured data to markdown
-- **One renderer per event type:** Matching the processors
-- **Output:** Formatted markdown content for display
+#### Layer 3: Event Renderers (UI Functions in `src/events/`)
+- **Purpose:** Pure presentation logic, converts structured data to UI components
+- **One renderer per event type:** Located in main event files (e.g., `log.rs`, `query.rs`, `exception.rs`)
+- **Output:** gpui Div components with minimalist styling for display
 
 ### Event Flow
 
 1. HTTP server receives JSON payload
 2. Event type determines which processor to use
 3. Processor extracts and structures data
-4. Renderer converts structured data to markdown
+4. UI renderer converts structured data to gpui components with minimalist styling
 5. Result stored in EventStorage and displayed in UI
 
 ## Adding New Event Types
@@ -102,31 +102,50 @@ pub fn process_my_event(content: &Value) -> Result<ProcessedEvent> {
 }
 ```
 
-### 3. Create Renderer
-Create `src/events/renderers/my_event.rs`:
+### 3. Create UI Renderer
+Add to the main event file (e.g., `src/events/my_event.rs`):
 ```rust
-use crate::events::types::MyEvent;
+use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
+use gpui::prelude::*;
+use gpui::{div, Context, Div};
 
-pub fn render_my_event_markdown(event: &MyEvent) -> String {
-    let mut markdown = String::from("## My Event\n\n");
-    markdown.push_str(&format!("**Field 1:** {}\n", event.field1));
-    // ... format other fields
-    markdown
+pub fn render_my_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap_6()
+        .child(render_my_event_details(entry))
+        .child(render_origin_info(entry))
 }
 
-pub fn get_my_event_label(_event: &MyEvent) -> String {
-    "My Event".to_string()
+fn render_my_event_details(entry: &EventEntry) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap_2()
+        .child(
+            div()
+                .text_sm()
+                .text_color(text_primary_color())
+                .child("Event content here")
+        )
 }
 
-pub fn get_my_event_description(event: &MyEvent) -> String {
-    event.field1.clone()
+fn render_origin_info(entry: &EventEntry) -> Div {
+    // Standard origin info with minimal styling
+    if let Some(origin) = entry.raw_payload.get("origin") {
+        // ... implement origin display
+    } else {
+        div()
+    }
 }
 ```
 
 ### 4. Update Module Files
 - Add exports to `src/events/processors/mod.rs`
-- Add exports to `src/events/renderers/mod.rs`
+- Add the new event file to `src/events/mod.rs`
 - Add new event type to factory pattern in main event processor
+- Register the UI renderer function in the renderer factory
 
 ## UI Framework (GPUI)
 
@@ -139,9 +158,23 @@ pub fn get_my_event_description(event: &MyEvent) -> String {
 - **Examples:** https://github.com/zed-industries/zed/tree/main/crates/gpui/examples
 - **Note:** Your knowledge about gpui may be outdated; always prefer examples from the official Zed repo
 
+### UI Design Philosophy
+- **Minimalist, shadcn-inspired aesthetic** with clean typography and generous whitespace
+- **Color palette:** zinc-based (zinc-950 background, zinc-800 borders, zinc-50/zinc-400 text)
+- **Typography-first approach:** Use font weight, size, and color for hierarchy instead of heavy styling
+- **Subtle interactions:** Text-only buttons with opacity/color hover effects
+- **No cards or excessive borders:** Use spacing for visual separation
+- **Unified background:** Single background color throughout the application
+
 ### UI Components
 - Use components from `src/ui_components.rs` for consistent styling
 - Follow existing patterns for event rendering and display
+- **Key principles:**
+  - Avoid emoji icons - use clean typography instead
+  - Use opacity (0.5, 0.7, 0.8, 0.9) for subtle hierarchy
+  - Minimal hover states with color/opacity changes only
+  - Generous padding and spacing (px-4, px-8, py-3, py-6, gap-4, gap-6)
+  - Clean borders only for true content separation (border_color())
 
 ## Rust Coding Guidelines
 

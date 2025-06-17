@@ -1,7 +1,7 @@
 use crate::event_storage::EventStorage;
 use crate::events::EventEntry;
 use crate::ui_components::{
-    border_color, hover_color, panel_background_color, selection_color, styled_button,
+    background_color, border_color, hover_color, selection_color,
     text_primary_color, text_secondary_color,
 };
 use gpui::prelude::*;
@@ -21,7 +21,7 @@ pub fn render_event_list_panel(
         .flex_col()
         .w_64()
         .h_full()
-        .bg(panel_background_color())
+        .bg(background_color())
         .border_r_1()
         .border_color(border_color())
         .child(render_header(cx))
@@ -31,29 +31,33 @@ pub fn render_event_list_panel(
 fn render_header(cx: &mut Context<crate::app::MyApp>) -> Div {
     div()
         .flex()
-        .flex_col()
+        .flex_row()
         .justify_between()
         .items_center()
-        .p_4()
+        .px_4()
+        .py_3()
         .border_b_1()
         .border_color(border_color())
         .child(
             div()
-                .text_lg()
-                .text_center()
-                .font_weight(FontWeight::BOLD)
+                .text_sm()
+                .font_weight(FontWeight::MEDIUM)
                 .text_color(text_primary_color())
-                .child("Payload Processing Server"),
+                .child("Events"),
         )
         .child(
-            styled_button()
+            div()
+                .text_xs()
+                .text_color(text_secondary_color())
+                .cursor_pointer()
+                .hover(|style| style.text_color(text_primary_color()))
                 .on_mouse_down(
                     gpui::MouseButton::Left,
                     cx.listener(|this, _event, _window, cx| {
                         this.clear_events(cx);
                     }),
                 )
-                .child("Clear"),
+                .child("clear"),
         )
 }
 
@@ -100,14 +104,16 @@ fn render_event_uniform_list(
                         let bg_color = if is_selected {
                             selection_color()
                         } else {
-                            panel_background_color()
+                            background_color()
                         };
 
                         div()
                             .id(("event", index))
                             .flex()
                             .flex_col()
-                            .p_2()
+                            .px_4()
+                            .py_3()
+                            .gap_1()
                             .bg(bg_color)
                             .hover(|style| style.bg(hover_color()))
                             .cursor_pointer()
@@ -117,8 +123,14 @@ fn render_event_uniform_list(
                                     this.select_row(index, cx);
                                 }),
                             )
-                            .child(render_event_timestamp(&entry.timestamp))
-                            .child(render_event_label(&entry.label))
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_row()
+                                    .justify_between()
+                                    .child(render_event_label(&entry.label))
+                                    .child(render_event_timestamp(&entry.timestamp))
+                            )
                             .child(render_event_description(&entry.description))
                     })
                     .collect()
@@ -133,13 +145,13 @@ fn render_event_timestamp(timestamp: &str) -> Div {
     div()
         .text_xs()
         .text_color(text_secondary_color())
+        .opacity(0.5)
         .child(timestamp.to_string())
 }
 
 fn render_event_label(label: &str) -> Div {
     div()
         .text_sm()
-        .font_weight(FontWeight::MEDIUM)
         .text_color(text_primary_color())
         .child(label.to_string())
 }
@@ -148,6 +160,7 @@ fn render_event_description(description: &str) -> Div {
     div()
         .text_xs()
         .text_color(text_secondary_color())
+        .opacity(0.7)
         .truncate()
         .child(description.to_string())
 }

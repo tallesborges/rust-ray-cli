@@ -2,7 +2,7 @@ use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::process_exception_event;
 use crate::events::types::ProcessedEvent;
 use crate::ui_components::{
-    background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
+    border_color, text_primary_color, text_secondary_color,
 };
 use anyhow::Result;
 use gpui::prelude::*;
@@ -56,122 +56,54 @@ pub fn render_exception_event(entry: &EventEntry, _cx: &mut Context<crate::app::
     div()
         .flex()
         .flex_col()
-        .gap_4()
-        .child(render_exception_header(&content))
+        .gap_6()
         .child(render_exception_details(&content))
         .child(render_stack_trace(&content))
         .child(render_origin_info(entry))
 }
 
-fn render_exception_header(content: &Value) -> Div {
+// Header removed for minimal design
+
+fn render_exception_details(content: &Value) -> Div {
     let class = content
         .get("class")
         .and_then(|c| c.as_str())
-        .unwrap_or("Unknown Exception")
-        .to_string();
-
-    styled_card().p_4().child(
-        div()
-            .flex()
-            .flex_row()
-            .gap_3()
-            .items_center()
-            .child(div().text_2xl().child("💥"))
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_1()
-                    .child(
-                        div()
-                            .text_lg()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(gpui::rgb(0xef4444)) // Red
-                            .child(class),
-                    )
-                    .child(
-                        div()
-                            .text_sm()
-                            .text_color(text_secondary_color())
-                            .child("Exception"),
-                    ),
-            ),
-    )
-}
-
-fn render_exception_details(content: &Value) -> Div {
+        .unwrap_or("Exception");
     let message = content
         .get("message")
         .and_then(|m| m.as_str())
-        .unwrap_or("")
-        .to_string();
+        .unwrap_or("");
 
-    if !message.is_empty() {
-        styled_card().p_4().child(
+    div()
+        .flex()
+        .flex_col()
+        .gap_2()
+        .child(
             div()
-                .flex()
-                .flex_col()
-                .gap_3()
-                .child(
-                    div()
-                        .text_sm()
-                        .font_weight(gpui::FontWeight::BOLD)
-                        .text_color(text_secondary_color())
-                        .child("📋 Error Message"),
-                )
-                .child(
-                    div()
-                        .p_3()
-                        .bg(gpui::rgb(0xfef2f2)) // Light red background
-                        .border_1()
-                        .border_color(gpui::rgb(0xfecaca))
-                        .rounded_lg()
-                        .child(
-                            div()
-                                .text_sm()
-                                .text_color(gpui::rgb(0x991b1b)) // Dark red text
-                                .child(message),
-                        ),
-                ),
+                .text_sm()
+                .text_color(text_primary_color())
+                .child(if !message.is_empty() {
+                    format!("{}: {}", class, message)
+                } else {
+                    class.to_string()
+                })
         )
-    } else {
-        div() // Empty div if no message
-    }
 }
 
 fn render_stack_trace(content: &Value) -> Div {
     if let Some(frames) = content.get("frames").and_then(|f| f.as_array()) {
-        styled_card().p_4().child(
-            div()
-                .flex()
-                .flex_col()
-                .gap_3()
-                .child(
-                    div()
-                        .flex()
-                        .flex_row()
-                        .gap_2()
-                        .items_center()
-                        .child(
-                            div()
-                                .text_sm()
-                                .font_weight(gpui::FontWeight::BOLD)
-                                .text_color(text_secondary_color())
-                                .child("🔍 Stack Trace"),
-                        )
-                        .child(
-                            div()
-                                .px_2()
-                                .py_1()
-                                .bg(gpui::rgb(0x3b82f6))
-                                .text_color(gpui::white())
-                                .text_xs()
-                                .rounded_lg()
-                                .child(format!("{} frames", frames.len())),
-                        ),
-                )
-                .child(render_frames(frames)),
-        )
+        div()
+            .flex()
+            .flex_col()
+            .gap_3()
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(text_secondary_color())
+                    .opacity(0.7)
+                    .child(format!("{} frames", frames.len()))
+            )
+            .child(render_frames(frames))
     } else {
         div() // Empty div if no frames
     }
@@ -201,159 +133,41 @@ fn render_single_frame(index: usize, frame: &Value) -> Div {
 
     div()
         .flex()
-        .flex_col()
-        .gap_2()
-        .p_3()
-        .bg(background_color())
-        .border_1()
-        .border_color(border_color())
-        .rounded_lg()
+        .flex_row()
+        .gap_3()
+        .items_start()
+        .py_2()
         .child(
-            // Frame header
             div()
-                .flex()
-                .flex_row()
-                .gap_3()
-                .items_center()
-                .child(
-                    // Frame number
-                    div()
-                        .w_8()
-                        .h_8()
-                        .rounded_full()
-                        .bg(if index == 0 {
-                            gpui::rgb(0xef4444)
-                        } else {
-                            gpui::rgb(0x6b7280)
-                        })
-                        .text_color(gpui::white())
-                        .text_sm()
-                        .font_weight(gpui::FontWeight::BOLD)
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child((index + 1).to_string()),
-                )
-                .child(
-                    // Method info
-                    div()
-                        .flex()
-                        .flex_col()
-                        .flex_1()
-                        .child(
-                            div()
-                                .text_sm()
-                                .font_weight(gpui::FontWeight::BOLD)
-                                .text_color(text_monospace_color())
-                                .child(format!("{}::{}", class, method)),
-                        )
-                        .child(
-                            div()
-                                .text_xs()
-                                .text_color(text_secondary_color())
-                                .child(format!("{}:{}", file, line)),
-                        ),
-                ),
+                .text_xs()
+                .text_color(text_secondary_color())
+                .opacity(0.5)
+                .w_4()
+                .child(format!("{}", index + 1))
         )
-        .child(render_code_snippet(frame, line))
-}
-
-fn render_code_snippet(frame: &Value, current_line: u64) -> Div {
-    if let Some(snippet) = frame.get("snippet").and_then(|s| s.as_array()) {
-        div()
-            .mt_2()
-            .p_3()
-            .bg(gpui::rgb(0x1f2937)) // Dark background for code
-            .rounded_lg()
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_1()
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(text_secondary_color())
-                            .mb_2()
-                            .child("📝 Code Context"),
-                    )
-                    .child(render_snippet_lines(snippet, current_line)),
-            )
-    } else {
-        div() // Empty div if no snippet
-    }
-}
-
-fn render_snippet_lines(snippet: &[Value], current_line: u64) -> Div {
-    let mut container = div().font_family("monospace").text_xs();
-
-    for line_info in snippet {
-        let line_num = line_info
-            .get("line_number")
-            .and_then(|l| l.as_u64())
-            .unwrap_or(0);
-        let text = line_info
-            .get("text")
-            .and_then(|t| t.as_str())
-            .unwrap_or("")
-            .to_string();
-
-        let is_current = line_num == current_line;
-
-        container = container.child(
+        .child(
             div()
+                .flex_1()
                 .flex()
-                .flex_row()
-                .gap_2()
-                .py_1()
-                .px_2()
-                .rounded_lg()
-                .bg(if is_current {
-                    gpui::rgb(0x7c2d12)
-                } else {
-                    gpui::rgb(0x000000)
-                })
+                .flex_col()
+                .gap_1()
                 .child(
-                    // Line number
                     div()
-                        .w_12()
-                        .text_right()
-                        .text_color(if is_current {
-                            gpui::rgb(0xfca5a5)
-                        } else {
-                            gpui::rgb(0x6b7280)
-                        })
-                        .font_weight(if is_current {
-                            gpui::FontWeight::BOLD
-                        } else {
-                            gpui::FontWeight::NORMAL
-                        })
-                        .child(format!("{}", line_num)),
+                        .text_sm()
+                        .text_color(text_primary_color())
+                        .child(format!("{}::{}", class, method))
                 )
                 .child(
-                    // Arrow for current line
                     div()
-                        .w_4()
-                        .text_color(gpui::rgb(0xef4444))
-                        .font_weight(gpui::FontWeight::BOLD)
-                        .child(if is_current { "→" } else { " " }),
+                        .text_xs()
+                        .text_color(text_secondary_color())
+                        .opacity(0.7)
+                        .child(format!("{}:{}", file, line))
                 )
-                .child(
-                    // Code text
-                    div()
-                        .flex_1()
-                        .text_color(if is_current {
-                            gpui::rgb(0xfef2f2)
-                        } else {
-                            gpui::rgb(0xd1d5db)
-                        })
-                        .child(text),
-                ),
-        );
-    }
-
-    container
+        )
 }
+
+// Code snippets removed for minimal design
 
 fn render_origin_info(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {
@@ -368,25 +182,17 @@ fn render_origin_info(entry: &EventEntry) -> Div {
             .unwrap_or("");
 
         if !file.is_empty() {
-            styled_card().p_3().child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(text_secondary_color())
-                            .child("🔍 Source"),
-                    )
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(text_monospace_color())
-                            .child(format!("{}:{} on {}", file, line, hostname)),
-                    ),
-            )
+            div()
+                .pt_4()
+                .border_t_1()
+                .border_color(border_color())
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(text_secondary_color())
+                        .opacity(0.7)
+                        .child(format!("{}:{} • {}", file, line, hostname)),
+                )
         } else {
             div() // Empty div if no origin info
         }

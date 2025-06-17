@@ -2,7 +2,7 @@ use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::process_log_event;
 use crate::events::types::ProcessedEvent;
 use crate::ui_components::{
-    background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
+    border_color, text_monospace_color, text_primary_color, text_secondary_color,
 };
 use anyhow::Result;
 use gpui::prelude::*;
@@ -45,21 +45,12 @@ pub fn render_log_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>
     div()
         .flex()
         .flex_col()
-        .gap_3()
-        .child(render_log_header(entry))
+        .gap_6()
         .child(render_log_values(entry))
         .child(render_origin_info(entry))
 }
 
-fn render_log_header(_entry: &EventEntry) -> Div {
-    styled_card().p_3().child(
-        div()
-            .text_sm()
-            .font_weight(gpui::FontWeight::BOLD)
-            .text_color(text_secondary_color())
-            .child("📝 Log Event"),
-    )
-}
+// Header removed for minimal design
 
 fn render_log_values(entry: &EventEntry) -> Div {
     let values = entry
@@ -69,20 +60,11 @@ fn render_log_values(entry: &EventEntry) -> Div {
         .cloned()
         .unwrap_or(Value::Array(vec![]));
 
-    styled_card().p_4().child(
-        div()
-            .flex()
-            .flex_col()
-            .gap_3()
-            .child(
-                div()
-                    .text_sm()
-                    .font_weight(gpui::FontWeight::BOLD)
-                    .text_color(text_secondary_color())
-                    .child("Values"),
-            )
-            .child(render_values_list(&values)),
-    )
+    div()
+        .flex()
+        .flex_col()
+        .gap_4()
+        .child(render_values_list(&values))
 }
 
 fn render_values_list(values: &Value) -> Div {
@@ -104,26 +86,16 @@ fn render_single_value(index: usize, value: &Value) -> Div {
     div()
         .flex()
         .flex_row()
-        .gap_3()
+        .gap_4()
         .items_start()
-        .p_3()
-        .bg(background_color())
-        .rounded_lg()
-        .border_1()
-        .border_color(border_color())
         .child(
-            // Index badge
+            // Minimal index
             div()
-                .w_6()
-                .h_6()
-                .rounded_full()
-                .bg(gpui::rgb(0x3b82f6))
-                .text_color(gpui::white())
                 .text_xs()
-                .flex()
-                .items_center()
-                .justify_center()
-                .child((index + 1).to_string()),
+                .text_color(text_secondary_color())
+                .opacity(0.5)
+                .w_4()
+                .child(format!("{}", index + 1)),
         )
         .child(
             // Value content
@@ -140,35 +112,29 @@ fn render_single_value(index: usize, value: &Value) -> Div {
 fn render_string_value(s: &str) -> Div {
     div()
         .text_sm()
-        .text_color(text_monospace_color())
-        .child(format!("\"{}\"", s))
+        .text_color(text_primary_color())
+        .child(s.to_string())
 }
 
 fn render_number_value(n: &serde_json::Number) -> Div {
     div()
         .text_sm()
-        .text_color(gpui::rgb(0x10b981)) // Green for numbers
-        .font_weight(gpui::FontWeight::MEDIUM)
+        .text_color(text_primary_color())
         .child(n.to_string())
 }
 
 fn render_bool_value(b: bool) -> Div {
     div()
         .text_sm()
-        .text_color(if b {
-            gpui::rgb(0x10b981)
-        } else {
-            gpui::rgb(0xef4444)
-        }) // Green/Red
-        .font_weight(gpui::FontWeight::BOLD)
+        .text_color(text_primary_color())
         .child(b.to_string())
 }
 
 fn render_null_value() -> Div {
     div()
         .text_sm()
-        .text_color(gpui::rgb(0x6b7280)) // Gray
-        .italic()
+        .text_color(text_secondary_color())
+        .opacity(0.5)
         .child("null")
 }
 
@@ -176,16 +142,13 @@ fn render_complex_value(value: &Value) -> Div {
     let formatted = serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
 
     div()
-        .max_h_32()
-        .overflow_hidden()
-        .p_2()
-        .bg(gpui::rgb(0x1f2937))
-        .rounded_lg()
+        .py_2()
         .child(
             div()
                 .font_family("monospace")
                 .text_xs()
                 .text_color(text_monospace_color())
+                .opacity(0.8)
                 .child(InteractiveText::new(
                     "complex-value",
                     StyledText::new(formatted),
@@ -206,25 +169,17 @@ fn render_origin_info(entry: &EventEntry) -> Div {
             .unwrap_or("");
 
         if !file.is_empty() {
-            styled_card().p_3().child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(text_secondary_color())
-                            .child("🔍 Source"),
-                    )
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(text_monospace_color())
-                            .child(format!("{}:{} on {}", file, line, hostname)),
-                    ),
-            )
+            div()
+                .pt_4()
+                .border_t_1()
+                .border_color(border_color())
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(text_secondary_color())
+                        .opacity(0.7)
+                        .child(format!("{}:{} • {}", file, line, hostname)),
+                )
         } else {
             div() // Empty div if no origin info
         }
