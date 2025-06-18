@@ -336,3 +336,368 @@ fn format_bytes(bytes: u64) -> String {
         format!("{:.1}{}", size, UNITS[unit_index])
     }
 }
+
+// Table-based HTTP rendering functions (for Ray API table events with Http label)
+pub fn render_table_http_event(content: &Value, entry: &EventEntry) -> Div {
+    let values = content.get("values").unwrap_or(&Value::Null);
+    
+    let method = values.get("Method").and_then(Value::as_str);
+    let _status = values.get("Status").and_then(Value::as_u64);
+    let is_request = method.is_some();
+    
+    div()
+        .flex()
+        .flex_col()
+        .gap_6()
+        .child(if is_request {
+            render_table_http_request_header(values)
+        } else {
+            render_table_http_response_header(values)
+        })
+        .child(render_table_http_details(values))
+        .when(has_table_performance_data(values), |d| {
+            d.child(render_table_http_performance(values))
+        })
+        .child(render_table_origin_info(entry))
+}
+
+fn render_table_http_request_header(values: &Value) -> Div {
+    let method = values.get("Method").and_then(Value::as_str).unwrap_or("GET");
+    let url = values.get("URL").and_then(Value::as_str).unwrap_or("");
+    
+    div()
+        .flex()
+        .items_center()
+        .gap_4()
+        .child(
+            div()
+                .px_3()
+                .py_1()
+                .rounded_md()
+                .bg(rgb(0x18181b))
+                .child(
+                    div()
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(rgb(0x22c55e))
+                        .child(method.to_string()),
+                ),
+        )
+        .child(
+            div()
+                .flex_1()
+                .text_sm()
+                .font_family("monospace")
+                .text_color(text_primary_color())
+                .child(url.to_string()),
+        )
+}
+
+fn render_table_http_response_header(values: &Value) -> Div {
+    let status = values.get("Status").and_then(Value::as_u64).unwrap_or(0);
+    let url = values.get("URL").and_then(Value::as_str).unwrap_or("");
+    
+    let status_color = match status {
+        200..=299 => rgb(0x22c55e), // Green for success
+        400..=499 => rgb(0xef4444), // Red for client errors
+        500..=599 => rgb(0xef4444), // Red for server errors
+        300..=399 => rgb(0xf59e0b), // Orange for redirects
+        _ => text_secondary_color().into(),
+    };
+    
+    div()
+        .flex()
+        .items_center()
+        .gap_4()
+        .child(
+            div()
+                .px_3()
+                .py_1()
+                .rounded_md()
+                .bg(rgb(0x18181b))
+                .child(
+                    div()
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(status_color)
+                        .child(status.to_string()),
+                ),
+        )
+        .child(
+            div()
+                .flex_1()
+                .text_sm()
+                .font_family("monospace")
+                .text_color(text_primary_color())
+                .child(url.to_string()),
+        )
+}
+
+fn render_table_http_details(values: &Value) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap_4()
+        .when(has_table_headers(values), |d| {
+            d.child(render_table_http_headers(values))
+        })
+        .when(has_table_body(values), |d| {
+            d.child(render_table_http_body(values))
+        })
+}
+
+fn has_table_headers(values: &Value) -> bool {
+    if let Some(headers) = values.get("Headers").and_then(Value::as_object) {
+        !headers.is_empty()
+    } else {
+        false
+    }
+}
+
+fn has_table_body(values: &Value) -> bool {
+    values.get("Body").is_some() || values.get("Data").is_some()
+}
+
+fn has_table_performance_data(values: &Value) -> bool {
+    values.get("Duration").is_some() 
+        || values.get("Connection time").is_some() 
+        || values.get("Size").is_some() 
+        || values.get("Request Size").is_some()
+}
+
+fn render_table_http_performance(values: &Value) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap_2()
+        .child(
+            div()
+                .text_xs()
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(text_secondary_color())
+                .child("PERFORMANCE"),
+        )
+        .child(
+            div()
+                .flex()
+                .gap_6()
+                .text_xs()
+                .when(values.get("Duration").is_some(), |d| {
+                    d.child(render_table_duration_metric(values))
+                })
+                .when(values.get("Connection time").is_some(), |d| {
+                    d.child(render_table_connection_metric(values))
+                })
+                .when(values.get("Size").is_some(), |d| {
+                    d.child(render_table_size_metric(values))
+                })
+                .when(values.get("Request Size").is_some(), |d| {
+                    d.child(render_table_request_size_metric(values))
+                }),
+        )
+}
+
+fn render_table_duration_metric(values: &Value) -> Div {
+    if let Some(duration) = values.get("Duration").and_then(Value::as_f64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Duration:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format!("{}ms", (duration * 1000.0) as u64)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_table_connection_metric(values: &Value) -> Div {
+    if let Some(conn_time) = values.get("Connection time").and_then(Value::as_f64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Connection:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format!("{}ms", (conn_time * 1000.0) as u64)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_table_size_metric(values: &Value) -> Div {
+    if let Some(size) = values.get("Size").and_then(Value::as_u64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Size:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format_bytes(size)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_table_request_size_metric(values: &Value) -> Div {
+    if let Some(req_size) = values.get("Request Size").and_then(Value::as_u64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Request Size:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format_bytes(req_size)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_table_http_headers(values: &Value) -> Div {
+    if let Some(headers) = values.get("Headers").and_then(Value::as_object) {
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .text_xs()
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(text_secondary_color())
+                    .child("HEADERS"),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap_1()
+                    .p_3()
+                    .rounded_md()
+                    .bg(rgb(0x18181b))
+                    .border_1()
+                    .border_color(border_color())
+                    .children(headers.iter().map(|(key, value)| {
+                        let value_str = if let Some(val_str) = value.as_str() {
+                            val_str.to_string()
+                        } else if let Some(val_array) = value.as_array() {
+                            val_array
+                                .iter()
+                                .filter_map(|v| v.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        } else {
+                            value.to_string()
+                        };
+                        
+                        div()
+                            .flex()
+                            .gap_2()
+                            .text_xs()
+                            .font_family("monospace")
+                            .child(
+                                div()
+                                    .min_w_32()
+                                    .text_color(text_secondary_color())
+                                    .child(format!("{}:", key)),
+                            )
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .text_color(text_primary_color())
+                                    .child(value_str),
+                            )
+                    })),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_table_http_body(values: &Value) -> Div {
+    let body = values.get("Body").cloned()
+        .or_else(|| values.get("Data").cloned());
+    
+    if let Some(body_val) = body {
+        if !body_val.is_null() {
+            let formatted_body = serde_json::to_string_pretty(&body_val).unwrap_or_else(|_| body_val.to_string());
+            
+            return div()
+                .flex()
+                .flex_col()
+                .gap_2()
+                .child(
+                    div()
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(text_secondary_color())
+                        .child("BODY"),
+                )
+                .child(
+                    div()
+                        .p_4()
+                        .rounded_md()
+                        .bg(rgb(0x18181b))
+                        .border_1()
+                        .border_color(border_color())
+                        .child(
+                            div()
+                                .text_xs()
+                                .font_family("monospace")
+                                .text_color(text_primary_color())
+                                .max_w_full()
+                                .child(formatted_body),
+                        ),
+                );
+        }
+    }
+    div() // Empty div if no body
+}
+
+fn render_table_origin_info(entry: &EventEntry) -> Div {
+    if let Some(origin) = entry.raw_payload.get("origin") {
+        let file = origin.get("file").and_then(Value::as_str).unwrap_or("");
+        let line = origin
+            .get("line_number")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+
+        div()
+            .flex()
+            .items_center()
+            .gap_2()
+            .text_xs()
+            .text_color(text_secondary_color())
+            .opacity(0.7)
+            .child(format!("{}:{}", file, line))
+    } else {
+        div()
+    }
+}
