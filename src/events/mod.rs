@@ -35,8 +35,51 @@ pub fn get_ui_renderer(event_type: &str) -> Option<EventUIRenderer> {
         "table" => Some(table::render_table_event),
         "application_log" => Some(application_log::render_application_log_event),
         "request" => Some(http::render_http_event),
-        _ => None,
+        _ => Some(render_unknown_event), // Fallback for unknown event types
     }
+}
+
+/// Fallback renderer for unknown event types
+fn render_unknown_event(entry: &EventEntry, _cx: &mut gpui::Context<crate::app::MyApp>) -> gpui::Div {
+    use gpui::prelude::*;
+    use gpui::div;
+    use crate::ui_components::{text_primary_color, text_secondary_color, border_color};
+
+    div()
+        .flex()
+        .flex_col()
+        .gap_4()
+        .child(
+            div()
+                .text_sm()
+                .font_weight(gpui::FontWeight::MEDIUM)
+                .text_color(text_primary_color())
+                .child(format!("Unknown Event Type: {}", entry.event_type))
+        )
+        .child(
+            div()
+                .text_xs()
+                .text_color(text_secondary_color())
+                .child("This event type is not supported. Raw JSON payload:")
+        )
+        .child(
+            div()
+                .p_4()
+                .rounded_md()
+                .bg(gpui::rgb(0x18181b))
+                .border_1()
+                .border_color(border_color())
+                .child(
+                    div()
+                        .text_xs()
+                        .font_family("monospace")
+                        .text_color(text_primary_color())
+                        .child(
+                            serde_json::to_string_pretty(&entry.raw_payload)
+                                .unwrap_or_else(|_| "Invalid JSON".to_string())
+                        ),
+                ),
+        )
 }
 
 /// Process an event with the appropriate processor
