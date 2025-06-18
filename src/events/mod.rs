@@ -4,6 +4,7 @@ use serde_json::Value;
 pub mod application_log;
 pub mod base;
 pub mod exception;
+pub mod http;
 pub mod log;
 pub mod processors;
 pub mod query;
@@ -20,6 +21,7 @@ pub fn create_processor(event_type: &str) -> Option<EventProcessor> {
         "query" | "executed_query" => Some(EventProcessor::Query),
         "table" => Some(EventProcessor::Table),
         "application_log" => Some(EventProcessor::ApplicationLog),
+        "request" => Some(EventProcessor::Http),
         _ => None,
     }
 }
@@ -32,6 +34,7 @@ pub fn get_ui_renderer(event_type: &str) -> Option<EventUIRenderer> {
         "query" | "executed_query" => Some(query::render_query_event),
         "table" => Some(table::render_table_event),
         "application_log" => Some(application_log::render_application_log_event),
+        "request" => Some(http::render_http_event),
         _ => None,
     }
 }

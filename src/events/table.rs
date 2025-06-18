@@ -2,11 +2,11 @@ use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::{process_cache_event, process_http_event, process_table_event};
 use crate::events::types::{ProcessedEvent, HttpEventType};
 use crate::ui_components::{
-    background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
+    background_color, border_color, styled_card, text_monospace_color, text_primary_color, text_secondary_color,
 };
 use anyhow::Result;
 use gpui::prelude::*;
-use gpui::{div, Context, Div};
+use gpui::{div, rgb, Context, Div, FontWeight};
 use serde_json::Value;
 
 pub fn process(payload: &Value) -> Result<EventEntry> {
@@ -301,269 +301,354 @@ fn render_http_ui(content: &Value, entry: &EventEntry) -> Div {
     let _status = values.get("Status").and_then(Value::as_u64);
     let is_request = method.is_some();
     
-    if is_request {
-        render_http_request_ui(values, entry)
-    } else {
-        render_http_response_ui(values, entry)
-    }
+    div()
+        .flex()
+        .flex_col()
+        .gap_6()
+        .child(if is_request {
+            render_http_request_header_minimal(values)
+        } else {
+            render_http_response_header_minimal(values)
+        })
+        .child(render_http_details_minimal(values))
+        .when(has_performance_data(values), |d| {
+            d.child(render_http_performance_minimal(values))
+        })
+        .child(render_origin_info(entry))
 }
 
-fn render_http_request_ui(values: &Value, entry: &EventEntry) -> Div {
-    let method = values.get("Method").and_then(Value::as_str).unwrap_or("");
+fn render_http_request_header_minimal(values: &Value) -> Div {
+    let method = values.get("Method").and_then(Value::as_str).unwrap_or("GET");
     let url = values.get("URL").and_then(Value::as_str).unwrap_or("");
     
     div()
         .flex()
-        .flex_col()
+        .items_center()
         .gap_4()
-        .child(render_http_request_header(method, url))
-        .child(render_http_headers(values, "Request Headers"))
-        .child(render_http_body(values, "Request Body"))
-        .child(render_origin_info(entry))
-}
-
-fn render_http_response_ui(values: &Value, entry: &EventEntry) -> Div {
-    let status = values.get("Status").and_then(Value::as_u64).unwrap_or(0);
-    let url = values.get("URL").and_then(Value::as_str).unwrap_or("");
-    let success = values.get("Success").and_then(Value::as_bool).unwrap_or(false);
-    
-    div()
-        .flex()
-        .flex_col()
-        .gap_4()
-        .child(render_http_response_header(status, url, success))
-        .child(render_http_performance(values))
-        .child(render_http_headers(values, "Response Headers"))
-        .child(render_http_body(values, "Response Body"))
-        .child(render_origin_info(entry))
-}
-
-fn render_http_request_header(method: &str, url: &str) -> Div {
-    styled_card().p_4().child(
-        div()
-            .flex()
-            .flex_row()
-            .gap_3()
-            .items_center()
-            .child(div().text_2xl().child("📤"))
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_1()
-                    .child(
-                        div()
-                            .text_lg()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(gpui::rgb(0x10b981)) // Green
-                            .child("HTTP Request"),
-                    )
-                    .child(
-                        div()
-                            .text_sm()
-                            .text_color(text_secondary_color())
-                            .child(format!("{} {}", method, url)),
-                    ),
-            ),
-    )
-}
-
-fn render_http_response_header(status: u64, url: &str, success: bool) -> Div {
-    let status_color = if success { gpui::rgb(0x10b981) } else { gpui::rgb(0xef4444) };
-    
-    styled_card().p_4().child(
-        div()
-            .flex()
-            .flex_row()
-            .gap_3()
-            .items_center()
-            .child(div().text_2xl().child("📥"))
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_1()
-                    .child(
-                        div()
-                            .text_lg()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(status_color)
-                            .child("HTTP Response"),
-                    )
-                    .child(
-                        div()
-                            .text_sm()
-                            .text_color(text_secondary_color())
-                            .child(format!("{} - {} ({})", url, status, if success { "Success" } else { "Failed" })),
-                    ),
-            ),
-    )
-}
-
-fn render_http_performance(values: &Value) -> Div {
-    let mut has_metrics = false;
-    let mut metrics = Vec::new();
-
-    if let Some(duration) = values.get("Duration").and_then(Value::as_f64) {
-        has_metrics = true;
-        metrics.push(("⏱️ Duration", format!("{:.6}s", duration)));
-    }
-
-    if let Some(conn_time) = values.get("Connection time").and_then(Value::as_f64) {
-        has_metrics = true;
-        metrics.push(("🔗 Connection Time", format!("{:.6}s", conn_time)));
-    }
-
-    if let Some(size) = values.get("Size").and_then(Value::as_u64) {
-        has_metrics = true;
-        metrics.push(("📦 Size", format!("{} bytes", size)));
-    }
-
-    if let Some(req_size) = values.get("Request Size").and_then(Value::as_u64) {
-        has_metrics = true;
-        metrics.push(("📤 Request Size", format!("{} bytes", req_size)));
-    }
-
-    if has_metrics {
-        styled_card().p_4().child(
+        .child(
             div()
-                .flex()
-                .flex_col()
-                .gap_3()
+                .px_3()
+                .py_1()
+                .rounded_md()
+                .bg(rgb(0x18181b))
                 .child(
                     div()
-                        .text_sm()
-                        .font_weight(gpui::FontWeight::BOLD)
-                        .text_color(text_secondary_color())
-                        .child("📊 Performance Metrics"),
-                )
-                .child({
-                    let mut container = div().flex().flex_col().gap_2();
-                    for (label, value) in metrics {
-                        container = container.child(
-                            div()
-                                .flex()
-                                .justify_between()
-                                .items_center()
-                                .p_2()
-                                .bg(background_color())
-                                .rounded_lg()
-                                .child(
-                                    div()
-                                        .text_sm()
-                                        .font_weight(gpui::FontWeight::BOLD)
-                                        .child(label),
-                                )
-                                .child(
-                                    div()
-                                        .text_sm()
-                                        .text_color(text_secondary_color())
-                                        .child(value),
-                                ),
-                        );
-                    }
-                    container
-                }),
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(rgb(0x22c55e))
+                        .child(method.to_string()),
+                ),
         )
+        .child(
+            div()
+                .flex_1()
+                .text_sm()
+                .font_family("monospace")
+                .text_color(text_primary_color())
+                .child(url.to_string()),
+        )
+}
+
+fn render_http_response_header_minimal(values: &Value) -> Div {
+    let status = values.get("Status").and_then(Value::as_u64).unwrap_or(0);
+    let url = values.get("URL").and_then(Value::as_str).unwrap_or("");
+    
+    let status_color = match status {
+        200..=299 => rgb(0x22c55e), // Green for success
+        400..=499 => rgb(0xef4444), // Red for client errors
+        500..=599 => rgb(0xef4444), // Red for server errors
+        300..=399 => rgb(0xf59e0b), // Orange for redirects
+        _ => text_secondary_color().into(),
+    };
+    
+    div()
+        .flex()
+        .items_center()
+        .gap_4()
+        .child(
+            div()
+                .px_3()
+                .py_1()
+                .rounded_md()
+                .bg(rgb(0x18181b))
+                .child(
+                    div()
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(status_color)
+                        .child(status.to_string()),
+                ),
+        )
+        .child(
+            div()
+                .flex_1()
+                .text_sm()
+                .font_family("monospace")
+                .text_color(text_primary_color())
+                .child(url.to_string()),
+        )
+}
+
+fn render_http_details_minimal(values: &Value) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap_4()
+        .when(has_headers(values), |d| {
+            d.child(render_http_headers_minimal(values))
+        })
+        .when(has_body(values), |d| {
+            d.child(render_http_body_minimal(values))
+        })
+}
+
+fn has_headers(values: &Value) -> bool {
+    if let Some(headers) = values.get("Headers").and_then(Value::as_object) {
+        !headers.is_empty()
     } else {
-        div() // Empty div if no metrics
+        false
     }
 }
 
-fn render_http_headers(values: &Value, title: &str) -> Div {
+fn has_body(values: &Value) -> bool {
+    values.get("Body").is_some() || values.get("Data").is_some()
+}
+
+fn has_performance_data(values: &Value) -> bool {
+    values.get("Duration").is_some() 
+        || values.get("Connection time").is_some() 
+        || values.get("Size").is_some() 
+        || values.get("Request Size").is_some()
+}
+
+fn render_http_performance_minimal(values: &Value) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap_2()
+        .child(
+            div()
+                .text_xs()
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(text_secondary_color())
+                .child("PERFORMANCE"),
+        )
+        .child(
+            div()
+                .flex()
+                .gap_6()
+                .text_xs()
+                .when(values.get("Duration").is_some(), |d| {
+                    d.child(render_duration_metric(values))
+                })
+                .when(values.get("Connection time").is_some(), |d| {
+                    d.child(render_connection_metric(values))
+                })
+                .when(values.get("Size").is_some(), |d| {
+                    d.child(render_size_metric(values))
+                })
+                .when(values.get("Request Size").is_some(), |d| {
+                    d.child(render_request_size_metric(values))
+                }),
+        )
+}
+
+fn render_duration_metric(values: &Value) -> Div {
+    if let Some(duration) = values.get("Duration").and_then(Value::as_f64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Duration:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format!("{}ms", (duration * 1000.0) as u64)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_connection_metric(values: &Value) -> Div {
+    if let Some(conn_time) = values.get("Connection time").and_then(Value::as_f64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Connection:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format!("{}ms", (conn_time * 1000.0) as u64)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_size_metric(values: &Value) -> Div {
+    if let Some(size) = values.get("Size").and_then(Value::as_u64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Size:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format_bytes(size)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn render_request_size_metric(values: &Value) -> Div {
+    if let Some(req_size) = values.get("Request Size").and_then(Value::as_u64) {
+        div()
+            .flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_color(text_secondary_color())
+                    .child("Request Size:"),
+            )
+            .child(
+                div()
+                    .font_family("monospace")
+                    .text_color(text_primary_color())
+                    .child(format_bytes(req_size)),
+            )
+    } else {
+        div()
+    }
+}
+
+fn format_bytes(bytes: u64) -> String {
+    const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
+    let mut size = bytes as f64;
+    let mut unit_index = 0;
+
+    while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_index += 1;
+    }
+
+    if size.fract() == 0.0 {
+        format!("{:.0}{}", size, UNITS[unit_index])
+    } else {
+        format!("{:.1}{}", size, UNITS[unit_index])
+    }
+}
+
+fn render_http_headers_minimal(values: &Value) -> Div {
     if let Some(headers) = values.get("Headers").and_then(Value::as_object) {
-        if !headers.is_empty() {
-            return styled_card().p_4().child(
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .text_xs()
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(text_secondary_color())
+                    .child("HEADERS"),
+            )
+            .child(
                 div()
                     .flex()
                     .flex_col()
-                    .gap_3()
-                    .child(
+                    .gap_1()
+                    .p_3()
+                    .rounded_md()
+                    .bg(rgb(0x18181b))
+                    .border_1()
+                    .border_color(border_color())
+                    .children(headers.iter().map(|(key, value)| {
+                        let value_str = if let Some(val_str) = value.as_str() {
+                            val_str.to_string()
+                        } else if let Some(val_array) = value.as_array() {
+                            val_array
+                                .iter()
+                                .filter_map(|v| v.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        } else {
+                            value.to_string()
+                        };
+                        
                         div()
-                            .text_sm()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(text_secondary_color())
-                            .child(format!("📋 {}", title)),
-                    )
-                    .child({
-                        let mut container = div().flex().flex_col().gap_1();
-                        for (key, value) in headers {
-                            let value_str = if let Some(val_str) = value.as_str() {
-                                val_str.to_string()
-                            } else if let Some(val_array) = value.as_array() {
-                                val_array
-                                    .iter()
-                                    .filter_map(|v| v.as_str())
-                                    .collect::<Vec<_>>()
-                                    .join(", ")
-                            } else {
-                                value.to_string()
-                            };
-                            
-                            container = container.child(
+                            .flex()
+                            .gap_2()
+                            .text_xs()
+                            .font_family("monospace")
+                            .child(
                                 div()
-                                    .flex()
-                                    .justify_between()
-                                    .items_center()
-                                    .p_2()
-                                    .bg(background_color())
-                                    .rounded_lg()
-                                    .child(
-                                        div()
-                                            .text_sm()
-                                            .font_weight(gpui::FontWeight::BOLD)
-                                            .child(key.to_string()),
-                                    )
-                                    .child(
-                                        div()
-                                            .text_sm()
-                                            .text_color(text_secondary_color())
-                                            .child(value_str.clone()),
-                                    ),
-                            );
-                        }
-                        container
-                    }),
-            );
-        }
+                                    .min_w_32()
+                                    .text_color(text_secondary_color())
+                                    .child(format!("{}:", key)),
+                            )
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .text_color(text_primary_color())
+                                    .child(value_str),
+                            )
+                    })),
+            )
+    } else {
+        div()
     }
-    div() // Empty div if no headers
 }
 
-fn render_http_body(values: &Value, title: &str) -> Div {
+fn render_http_body_minimal(values: &Value) -> Div {
     let body = values.get("Body").cloned()
         .or_else(|| values.get("Data").cloned());
     
     if let Some(body_val) = body {
         if !body_val.is_null() {
-            return styled_card().p_4().child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap_3()
-                    .child(
-                        div()
-                            .text_sm()
-                            .font_weight(gpui::FontWeight::BOLD)
-                            .text_color(text_secondary_color())
-                            .child(format!("📄 {}", title)),
-                    )
-                    .child(
-                        div()
-                            .p_3()
-                            .bg(gpui::rgb(0x1f2937))
-                            .rounded_lg()
-                            .max_h_64()
-                            .overflow_hidden()
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_xs()
-                                    .text_color(gpui::rgb(0xd1d5db))
-                                    .child(serde_json::to_string_pretty(&body_val).unwrap_or_default()),
-                            ),
-                    ),
-            );
+            let formatted_body = serde_json::to_string_pretty(&body_val).unwrap_or_else(|_| body_val.to_string());
+            
+            return div()
+                .flex()
+                .flex_col()
+                .gap_2()
+                .child(
+                    div()
+                        .text_xs()
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(text_secondary_color())
+                        .child("BODY"),
+                )
+                .child(
+                    div()
+                        .p_4()
+                        .rounded_md()
+                        .bg(rgb(0x18181b))
+                        .border_1()
+                        .border_color(border_color())
+                        .child(
+                            div()
+                                .text_xs()
+                                .font_family("monospace")
+                                .text_color(text_primary_color())
+                                .max_w_full()
+                                .child(formatted_body),
+                        ),
+                );
         }
     }
     div() // Empty div if no body

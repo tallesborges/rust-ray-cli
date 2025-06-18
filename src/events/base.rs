@@ -21,6 +21,7 @@ pub enum EventProcessor {
     Query,
     Table,
     ApplicationLog,
+    Http,
 }
 
 impl EventProcessor {
@@ -32,6 +33,7 @@ impl EventProcessor {
             Self::Query => crate::events::query::process(payload),
             Self::Table => crate::events::table::process(payload),
             Self::ApplicationLog => crate::events::application_log::process(payload),
+            Self::Http => crate::events::http::process(payload),
         }
     }
 }
