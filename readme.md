@@ -1,42 +1,127 @@
-# WASM-Powered Ray Event Processor
+# Rust Ray CLI
 
-A fast, flexible Ray event processor built with Rust and WASM. Tired of freezes in the official Ray app? This project offers a reliable alternative with a plugin architecture for custom event handling.
+A macOS desktop application that receives debug events from Ray PHP/Laravel applications and displays them in a native GUI using the gpui framework.
 
 ![Application Screenshot](images/image1.jpeg)
 
-**Key Features:**
+## Key Features
 
-*   **WASM Plugins:** Extend functionality with `.wasm` modules. Just drop them into the `wasm-modules/` directory!
-*   **Hot-Loading:** New event types are automatically detected.
-*   **Sandboxed Execution:** WASM modules run in isolated environments for enhanced security.
-*   **Native UI:** Built with [egui](https://github.com/emilk/egui) for a responsive, cross-platform experience.
+- **Native macOS GUI:** Built with [gpui](https://github.com/zed-industries/gpui) for optimal performance
+- **Event Processing:** Three-layer architecture for clean data processing and presentation
+- **Multiple Event Types:** Support for cache, HTTP, log, query, exception, and application log events
+- **Minimalist Design:** Clean, shadcn-inspired aesthetic with typography-first approach
+- **Real-time Updates:** Live event streaming from Ray applications
 
-**Development Highlights:**
+## Requirements
 
-This project served as a learning experience in Rust and WASM, resulting in a move from a native Rust implementation to a WASM-based plugin architecture. This enabled hot-reloading and sandboxed execution. Key steps included dynamic processor loading via FFI, WASM module hot-loading, and the creation of a common event processing interface.
+- **macOS only** (gpui is currently macOS-specific)
+- **Full Xcode installation** (for Metal shader compiler)
+- **Nightly Rust compiler** (uses experimental trait upcasting)
 
-**Usage:**
+## Installation & Usage
 
-1.  **Ray Integration:** Apply the following patch to `vendor/spatie/ray/src/ArgumentConverter.php` to bypass Symfony tags:
+### Running the Application
 
-    ```php
-    // Bypass Synphony tags for direct processing
-    return $argument;
-    ```
+```bash
+# Run the application
+cargo run
 
-2.  **Navigation:** Use the `↑` and `↓` keys to navigate table rows.
+# Quick test run (5 seconds)
+timeout 5s cargo run
+```
 
-**Roadmap:**
+### Development Commands
 
--   ✅ Redis cache support
--   Line numbering
--   Label filtering
--   ✅ Request details in preview
+```bash
+# Run tests
+cargo test
 
-**Evaluation:**
+# Check code
+cargo check
 
-The following technologies/features are being evaluated for potential integration:
+# Format code
+cargo fmt
 
-*   `egui_tracing`: For enhanced debugging and profiling.
-*   `egui_code_editor`: For improved code display and editing within the UI.
-*   `gpui`:  Exploring alternative UI frameworks for potential performance or feature benefits.
+# Lint code
+cargo clippy
+```
+
+## Ray Integration
+
+Configure your Ray application to send events to `localhost:23517` (default Ray port).
+
+**Important:** Apply the following patch to `vendor/spatie/ray/src/ArgumentConverter.php` to bypass Symfony tags:
+
+```php
+// Bypass Symfony tags for direct processing
+return $argument;
+```
+
+## Architecture
+
+This application uses a **three-layer Event-Processor-Renderer architecture**:
+
+```
+JSON Event → Processor → Structured Data → UI Renderer → gpui Components
+```
+
+### Layer 1: Event Processors (`src/events/processors/`)
+- **Purpose:** Pure data extraction from JSON payloads
+- **One processor per event type:** `cache.rs`, `http.rs`, `log.rs`, `query.rs`, `exception.rs`, `application_log.rs`, `table.rs`
+- **Output:** Structured data types defined in `src/events/types.rs`
+
+### Layer 2: Structured Data Types (`src/events/types.rs`)
+- **Purpose:** Clean data structures without presentation logic
+- **Types:** `CacheEvent`, `HttpEvent`, `LogEvent`, `QueryEvent`, `ExceptionEvent`, `ApplicationLogEvent`, `TableEvent`
+
+### Layer 3: Event Renderers (UI Functions in `src/events/`)
+- **Purpose:** Pure presentation logic, converts structured data to UI components
+- **One renderer per event type:** Located in main event files
+- **Output:** gpui Div components with minimalist styling for display
+
+## Core Components
+
+1. **HTTP Server** (`src/server.rs`): Listens on port 23517 for Ray events
+2. **Event Processing** (`src/events/`): Three-layer architecture for processing events
+3. **Event Storage** (`src/event_storage.rs`): Central storage with structured logging
+4. **GUI Application** (`src/app.rs`): Main application using gpui framework
+5. **UI Components** (`src/ui_components.rs`): Reusable UI elements and styling
+
+## Adding New Event Types
+
+To add a new event type, follow the three-layer pattern:
+
+1. **Create Data Type** in `src/events/types.rs`
+2. **Create Processor** in `src/events/processors/`
+3. **Create UI Renderer** in main event file
+4. **Update Module Files** to register the new type
+
+See `CLAUDE.md` for detailed implementation examples.
+
+## UI Design Philosophy
+
+- **Minimalist, shadcn-inspired aesthetic** with clean typography and generous whitespace
+- **Color palette:** zinc-based (zinc-950 background, zinc-800 borders, zinc-50/zinc-400 text)
+- **Typography-first approach:** Use font weight, size, and color for hierarchy
+- **Subtle interactions:** Text-only buttons with opacity/color hover effects
+- **No cards or excessive borders:** Use spacing for visual separation
+
+## Navigation
+
+Use the `↑` and `↓` keys to navigate table rows.
+
+## Development Notes
+
+- **Error Handling:** Never use `unwrap()` - always use `?` to propagate errors
+- **File Organization:** Prefer `src/module.rs` over `src/module/mod.rs`
+- **Code Quality:** Prioritize correctness and clarity over speed
+- **Safety:** Be careful with indexing and handle async operation failures
+
+## Resources
+
+- **GPUI Examples:** https://github.com/zed-industries/zed/tree/main/crates/gpui/examples
+- **Ray Documentation:** https://spatie.be/docs/ray
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).

@@ -1,7 +1,5 @@
 use crate::events::{get_ui_renderer, EventEntry};
-use crate::ui_components::{
-    copy_button, text_primary_color, text_secondary_color,
-};
+use crate::ui_components::{copy_button, text_primary_color, text_secondary_color};
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
 
@@ -47,7 +45,7 @@ fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) 
             div()
                 .text_lg()
                 .text_color(text_primary_color())
-                .child(entry.label.clone())
+                .child(entry.label.clone()),
         )
         .child(
             div()
@@ -55,7 +53,7 @@ fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) 
                 .flex_row()
                 .gap_6()
                 .child(render_metadata_item("time", &entry.timestamp, cx))
-                .child(render_metadata_item("type", &entry.content_type, cx))
+                .child(render_metadata_item("type", &entry.content_type, cx)),
         )
 }
 
@@ -70,15 +68,15 @@ fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::app::M
             div()
                 .text_xs()
                 .text_color(text_secondary_color())
-                .child(label.to_string())
+                .child(label.to_string()),
         )
         .child(
             div()
                 .text_xs()
                 .text_color(text_primary_color())
-                .child(value.to_string())
+                .child(value.to_string()),
         )
-        .child(copy_button(value.to_string()).on_mouse_down(
+        .child(copy_button().on_mouse_down(
             gpui::MouseButton::Left,
             cx.listener(move |this, _event, _window, cx| {
                 this.copy_to_clipboard(value_clone.clone(), cx);
@@ -103,28 +101,17 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
                 .flex_row()
                 .items_center()
                 .gap_2()
-                .child(
-                    copy_button(
-                        serde_json::to_string_pretty(&entry.raw_payload).unwrap_or_default(),
-                    )
-                    .on_mouse_down(
-                        gpui::MouseButton::Left,
-                        cx.listener({
-                            let payload_clone = entry.raw_payload.clone();
-                            move |this, _event, _window, cx| {
-                                let content = serde_json::to_string_pretty(&payload_clone)
-                                    .unwrap_or_default();
-                                this.copy_to_clipboard(content, cx);
-                            }
-                        }),
-                    ),
-                )
-                .child(
-                    div()
-                        .text_xs()
-                        .text_color(text_secondary_color())
-                        .child("raw payload")
-                ),
+                .child(copy_button().on_mouse_down(
+                    gpui::MouseButton::Left,
+                    cx.listener({
+                        let payload_clone = entry.raw_payload.clone();
+                        move |this, _event, _window, cx| {
+                            let content =
+                                serde_json::to_string_pretty(&payload_clone).unwrap_or_default();
+                            this.copy_to_clipboard(content, cx);
+                        }
+                    }),
+                )),
         )
         .child(
             div()

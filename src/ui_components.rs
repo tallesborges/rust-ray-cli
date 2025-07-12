@@ -26,15 +26,14 @@ pub fn hover_color() -> gpui::Hsla {
 
 pub fn styled_card() -> Div {
     // No cards in minimal design, just spacing
-    div()
-        .py_4()
+    div().py_4()
 }
 
-pub fn copy_button(_text: String) -> Div {
+pub fn copy_button() -> Div {
     div()
         .text_xs()
         .text_color(text_secondary_color())
         .cursor_pointer()
         .hover(|style| style.text_color(text_primary_color()))
-        .child("copy")
+        .child("copy raw payload")
 }
