@@ -1,7 +1,9 @@
 use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::process_query_event;
 use crate::events::types::ProcessedEvent;
-use crate::ui_components::{border_color, text_monospace_color, text_primary_color, text_secondary_color};
+use crate::ui_components::{
+    border_color, text_monospace_color, text_primary_color, text_secondary_color,
+};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, StyledText};
@@ -24,26 +26,29 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
         // Set labels and descriptions based on processed event
         if let ProcessedEvent::Query(ref query_event) = processed_event {
             // Extract the SQL operation type (SELECT, INSERT, UPDATE, etc.)
-            let operation_type = if let Some(first_word) = query_event.sql.trim().split_whitespace().next() {
-                first_word.to_uppercase()
-            } else {
-                "SQL".to_string()
-            };
+            let operation_type =
+                if let Some(first_word) = query_event.sql.trim().split_whitespace().next() {
+                    first_word.to_uppercase()
+                } else {
+                    "SQL".to_string()
+                };
             entry.label = format!("Query: {}", operation_type);
-            
+
             let description_sql = if query_event.sql.len() > 50 {
                 format!("{}...", &query_event.sql[..50].trim())
             } else {
                 query_event.sql.trim().to_string()
             };
-            
+
             if let Some(time) = query_event.duration_ms {
                 entry.description = format!("{} ({}ms)", description_sql, time);
             } else {
                 entry.description = description_sql;
             }
         } else {
-            return Err(anyhow::anyhow!("Unexpected event type from query processor"));
+            return Err(anyhow::anyhow!(
+                "Unexpected event type from query processor"
+            ));
         }
     }
 
@@ -96,7 +101,7 @@ fn render_query_metrics(content: &Value) -> Div {
                 .flex_row()
                 .gap_1()
                 .child(div().opacity(0.5).child("time:"))
-                .child(div().text_color(text_primary_color()).child(time_display))
+                .child(div().text_color(text_primary_color()).child(time_display)),
         )
         .child(
             div()
@@ -104,28 +109,25 @@ fn render_query_metrics(content: &Value) -> Div {
                 .flex_row()
                 .gap_1()
                 .child(div().opacity(0.5).child("connection:"))
-                .child(div().child(connection))
+                .child(div().child(connection)),
         )
 }
 
 fn render_sql_query(content: &Value) -> Div {
     let sql = content.get("sql").and_then(|s| s.as_str()).unwrap_or("");
 
-    div()
-        .py_2()
-        .child(
-            div()
-                .font_family("monospace")
-                .text_sm()
-                .text_color(text_monospace_color())
-                .opacity(0.9)
-                .child(InteractiveText::new(
-                    "sql-query",
-                    StyledText::new(sql.to_string()),
-                ))
-        )
+    div().py_2().child(
+        div()
+            .font_family("monospace")
+            .text_sm()
+            .text_color(text_monospace_color())
+            .opacity(0.9)
+            .child(InteractiveText::new(
+                "sql-query",
+                StyledText::new(sql.to_string()),
+            )),
+    )
 }
-
 
 fn render_origin_info(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {

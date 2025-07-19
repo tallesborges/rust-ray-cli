@@ -43,10 +43,13 @@ pub fn get_ui_renderer(event_type: &str) -> Option<EventUIRenderer> {
 }
 
 /// Fallback renderer for unknown event types
-fn render_unknown_event(entry: &EventEntry, _cx: &mut gpui::Context<crate::app::MyApp>) -> gpui::Div {
-    use gpui::prelude::*;
+fn render_unknown_event(
+    entry: &EventEntry,
+    _cx: &mut gpui::Context<crate::app::MyApp>,
+) -> gpui::Div {
+    use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
     use gpui::div;
-    use crate::ui_components::{text_primary_color, text_secondary_color, border_color};
+    use gpui::prelude::*;
 
     div()
         .flex()
@@ -57,13 +60,13 @@ fn render_unknown_event(entry: &EventEntry, _cx: &mut gpui::Context<crate::app::
                 .text_sm()
                 .font_weight(gpui::FontWeight::MEDIUM)
                 .text_color(text_primary_color())
-                .child(format!("Unknown Event Type: {}", entry.event_type))
+                .child(format!("Unknown Event Type: {}", entry.event_type)),
         )
         .child(
             div()
                 .text_xs()
                 .text_color(text_secondary_color())
-                .child("This event type is not supported. Raw JSON payload:")
+                .child("This event type is not supported. Raw JSON payload:"),
         )
         .child(
             div()
@@ -79,7 +82,7 @@ fn render_unknown_event(entry: &EventEntry, _cx: &mut gpui::Context<crate::app::
                         .text_color(text_primary_color())
                         .child(
                             serde_json::to_string_pretty(&entry.raw_payload)
-                                .unwrap_or_else(|_| "Invalid JSON".to_string())
+                                .unwrap_or_else(|_| "Invalid JSON".to_string()),
                         ),
                 ),
         )

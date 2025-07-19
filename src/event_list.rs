@@ -1,8 +1,8 @@
 use crate::event_storage::EventStorage;
 use crate::events::EventEntry;
 use crate::ui_components::{
-    background_color, border_color, hover_color, selection_color,
-    text_primary_color, text_secondary_color,
+    background_color, border_color, hover_color, selection_color, text_primary_color,
+    text_secondary_color,
 };
 use gpui::prelude::*;
 use gpui::{div, uniform_list, Context, Div, FontWeight, IntoElement, UniformListScrollHandle};
@@ -129,7 +129,7 @@ fn render_event_uniform_list(
                                     .flex_row()
                                     .justify_between()
                                     .child(render_event_label(&entry.label))
-                                    .child(render_event_timestamp(&entry.timestamp))
+                                    .child(render_event_timestamp(&entry.timestamp)),
                             )
                             .child(render_event_description(&entry.description))
                     })

@@ -32,7 +32,11 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                 log_event.message.clone()
             };
             // Clean up any JSON formatting for the description
-            entry.description = description.replace('\n', " ").replace("  ", " ").trim().to_string();
+            entry.description = description
+                .replace('\n', " ")
+                .replace("  ", " ")
+                .trim()
+                .to_string();
         } else {
             return Err(anyhow::anyhow!("Unexpected event type from log processor"));
         }
@@ -141,19 +145,17 @@ fn render_null_value() -> Div {
 fn render_complex_value(value: &Value) -> Div {
     let formatted = serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
 
-    div()
-        .py_2()
-        .child(
-            div()
-                .font_family("monospace")
-                .text_xs()
-                .text_color(text_monospace_color())
-                .opacity(0.8)
-                .child(InteractiveText::new(
-                    "complex-value",
-                    StyledText::new(formatted),
-                )),
-        )
+    div().py_2().child(
+        div()
+            .font_family("monospace")
+            .text_xs()
+            .text_color(text_monospace_color())
+            .opacity(0.8)
+            .child(InteractiveText::new(
+                "complex-value",
+                StyledText::new(formatted),
+            )),
+    )
 }
 
 fn render_origin_info(entry: &EventEntry) -> Div {

@@ -1,6 +1,6 @@
 use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::{process_cache_event, process_http_event, process_table_event};
-use crate::events::types::{ProcessedEvent, HttpEventType};
+use crate::events::types::{HttpEventType, ProcessedEvent};
 use crate::ui_components::{
     background_color, border_color, styled_card, text_monospace_color, text_secondary_color,
 };
@@ -46,22 +46,20 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                     _ => format!("{} ({})", cache_event.operation, cache_event.key),
                 };
             }
-            ProcessedEvent::Http(ref http_event) => {
-                match http_event.event_type {
-                    HttpEventType::Request => {
-                        entry.label = "HTTP: Request".to_string();
-                        entry.description = http_event.url.clone();
-                    }
-                    HttpEventType::Response => {
-                        entry.label = "HTTP: Response".to_string();
-                        entry.description = if let Some(status_code) = http_event.status_code {
-                            format!("{} - {}", http_event.url, status_code)
-                        } else {
-                            http_event.url.clone()
-                        };
-                    }
+            ProcessedEvent::Http(ref http_event) => match http_event.event_type {
+                HttpEventType::Request => {
+                    entry.label = "HTTP: Request".to_string();
+                    entry.description = http_event.url.clone();
                 }
-            }
+                HttpEventType::Response => {
+                    entry.label = "HTTP: Response".to_string();
+                    entry.description = if let Some(status_code) = http_event.status_code {
+                        format!("{} - {}", http_event.url, status_code)
+                    } else {
+                        http_event.url.clone()
+                    };
+                }
+            },
             ProcessedEvent::Table(ref table_event) => {
                 entry.label = table_event.label.clone();
                 entry.description = format!("{} data", table_event.label);
@@ -72,7 +70,6 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                 ));
             }
         }
-
     }
 
     Ok(entry)
@@ -98,7 +95,7 @@ pub fn render_table_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyAp
 
 fn render_generic_table_ui(content: &Value, entry: &EventEntry, label: &str) -> Div {
     let values = content.get("values").unwrap_or(&Value::Null);
-    
+
     div()
         .flex()
         .flex_col()
@@ -176,7 +173,9 @@ fn render_table_data(values: &Value) -> Div {
                                         .font_family("monospace")
                                         .text_xs()
                                         .text_color(text_monospace_color())
-                                        .child(serde_json::to_string_pretty(value).unwrap_or_default()),
+                                        .child(
+                                            serde_json::to_string_pretty(value).unwrap_or_default(),
+                                        ),
                                 ),
                         );
                     }
@@ -197,17 +196,13 @@ fn render_table_data(values: &Value) -> Div {
                         .child("📋 Raw Data"),
                 )
                 .child(
-                    div()
-                        .p_3()
-                        .bg(gpui::rgb(0x1f2937))
-                        .rounded_lg()
-                        .child(
-                            div()
-                                .font_family("monospace")
-                                .text_xs()
-                                .text_color(gpui::rgb(0xd1d5db))
-                                .child(serde_json::to_string_pretty(values).unwrap_or_default()),
-                        ),
+                    div().p_3().bg(gpui::rgb(0x1f2937)).rounded_lg().child(
+                        div()
+                            .font_family("monospace")
+                            .text_xs()
+                            .text_color(gpui::rgb(0xd1d5db))
+                            .child(serde_json::to_string_pretty(values).unwrap_or_default()),
+                    ),
                 ),
         )
     }

@@ -1,9 +1,7 @@
 use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::cache::process_cache_event;
 use crate::events::types::{CacheEvent, ProcessedEvent};
-use crate::ui_components::{
-    border_color, text_primary_color, text_secondary_color,
-};
+use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, rgb, Context, Div, FontWeight};
@@ -34,7 +32,9 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                 _ => format!("{} ({})", cache_event.operation, cache_event.key),
             };
         } else {
-            return Err(anyhow::anyhow!("Unexpected event type from cache processor"));
+            return Err(anyhow::anyhow!(
+                "Unexpected event type from cache processor"
+            ));
         }
     }
 
@@ -65,14 +65,14 @@ pub fn render_cache_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyAp
 // Table-based cache rendering functions (for Ray API table events with Cache label)
 pub fn render_table_cache_event(content: &Value, entry: &EventEntry) -> Div {
     let values = content.get("values").unwrap_or(&Value::Null);
-    
+
     let operation = values
         .get("Event")
         .and_then(Value::as_str)
         .unwrap_or("Unknown")
         .replace("<code>", "")
         .replace("</code>", "");
-    
+
     let key = values
         .get("Key")
         .and_then(Value::as_str)
@@ -93,10 +93,10 @@ pub fn render_table_cache_event(content: &Value, entry: &EventEntry) -> Div {
 
 fn render_cache_header(cache_event: &CacheEvent) -> Div {
     let operation_color = match cache_event.operation.as_str() {
-        "Hit" => rgb(0x22c55e),      // Green for hits
-        "Missed" => rgb(0xf59e0b),   // Orange for misses  
+        "Hit" => rgb(0x22c55e),         // Green for hits
+        "Missed" => rgb(0xf59e0b),      // Orange for misses
         "Key written" => rgb(0x3b82f6), // Blue for writes
-        "Forgotten" => rgb(0xef4444), // Red for deletions
+        "Forgotten" => rgb(0xef4444),   // Red for deletions
         _ => text_secondary_color().into(),
     };
 
@@ -105,18 +105,13 @@ fn render_cache_header(cache_event: &CacheEvent) -> Div {
         .items_center()
         .gap_4()
         .child(
-            div()
-                .px_3()
-                .py_1()
-                .rounded_md()
-                .bg(rgb(0x18181b))
-                .child(
-                    div()
-                        .text_xs()
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(operation_color)
-                        .child(cache_event.operation.clone()),
-                ),
+            div().px_3().py_1().rounded_md().bg(rgb(0x18181b)).child(
+                div()
+                    .text_xs()
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(operation_color)
+                    .child(cache_event.operation.clone()),
+            ),
         )
         .child(
             div()
@@ -130,31 +125,22 @@ fn render_cache_header(cache_event: &CacheEvent) -> Div {
 
 fn render_table_cache_header(operation: &str) -> Div {
     let operation_color = match operation {
-        "Hit" => rgb(0x22c55e),      // Green for hits
-        "Missed" => rgb(0xf59e0b),   // Orange for misses  
+        "Hit" => rgb(0x22c55e),         // Green for hits
+        "Missed" => rgb(0xf59e0b),      // Orange for misses
         "Key written" => rgb(0x3b82f6), // Blue for writes
-        "Forgotten" => rgb(0xef4444), // Red for deletions
+        "Forgotten" => rgb(0xef4444),   // Red for deletions
         _ => text_secondary_color().into(),
     };
 
-    div()
-        .flex()
-        .items_center()
-        .gap_4()
-        .child(
+    div().flex().items_center().gap_4().child(
+        div().px_3().py_1().rounded_md().bg(rgb(0x18181b)).child(
             div()
-                .px_3()
-                .py_1()
-                .rounded_md()
-                .bg(rgb(0x18181b))
-                .child(
-                    div()
-                        .text_xs()
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(operation_color)
-                        .child(operation.to_string()),
-                ),
-        )
+                .text_xs()
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(operation_color)
+                .child(operation.to_string()),
+        ),
+    )
 }
 
 fn render_cache_details(cache_event: &CacheEvent) -> Div {
@@ -224,7 +210,7 @@ fn render_cache_value_minimal(cache_event: &CacheEvent) -> Div {
                             .max_w_full()
                             .child(
                                 serde_json::to_string_pretty(value)
-                                    .unwrap_or_else(|_| value.to_string())
+                                    .unwrap_or_else(|_| value.to_string()),
                             ),
                     ),
             )
@@ -351,11 +337,7 @@ fn render_expiration_metric(cache_event: &CacheEvent) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("Expires:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("Expires:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -373,11 +355,7 @@ fn render_table_expiration_metric(values: &Value) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("Expires:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("Expires:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -394,11 +372,7 @@ fn render_tags_metric(cache_event: &CacheEvent) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("Tags:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("Tags:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -415,11 +389,7 @@ fn render_table_tags_metric(values: &Value) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("Tags:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("Tags:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -436,11 +406,7 @@ fn render_store_metric(cache_event: &CacheEvent) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("Store:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("Store:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -457,11 +423,7 @@ fn render_table_store_metric(values: &Value) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("Store:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("Store:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -478,11 +440,7 @@ fn render_ttl_metric(cache_event: &CacheEvent) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("TTL:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("TTL:"))
             .child(
                 div()
                     .font_family("monospace")
@@ -499,11 +457,7 @@ fn render_table_ttl_metric(values: &Value) -> Div {
         div()
             .flex()
             .gap_2()
-            .child(
-                div()
-                    .text_color(text_secondary_color())
-                    .child("TTL:"),
-            )
+            .child(div().text_color(text_secondary_color()).child("TTL:"))
             .child(
                 div()
                     .font_family("monospace")

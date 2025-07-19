@@ -51,4 +51,3 @@ pub fn extract_timestamp(payload: &Value) -> String {
         .unwrap_or("")
         .to_string()
 }
-

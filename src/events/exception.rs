@@ -1,9 +1,7 @@
 use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::process_exception_event;
 use crate::events::types::ProcessedEvent;
-use crate::ui_components::{
-    border_color, text_primary_color, text_secondary_color,
-};
+use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
@@ -39,7 +37,9 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                 entry.description = description;
             }
         } else {
-            return Err(anyhow::anyhow!("Unexpected event type from exception processor"));
+            return Err(anyhow::anyhow!(
+                "Unexpected event type from exception processor"
+            ));
         }
     }
 
@@ -86,7 +86,7 @@ fn render_exception_details(content: &Value) -> Div {
                     format!("{}: {}", class, message)
                 } else {
                     class.to_string()
-                })
+                }),
         )
 }
 
@@ -101,7 +101,7 @@ fn render_stack_trace(content: &Value) -> Div {
                     .text_xs()
                     .text_color(text_secondary_color())
                     .opacity(0.7)
-                    .child(format!("{} frames", frames.len()))
+                    .child(format!("{} frames", frames.len())),
             )
             .child(render_frames(frames))
     } else {
@@ -143,7 +143,7 @@ fn render_single_frame(index: usize, frame: &Value) -> Div {
                 .text_color(text_secondary_color())
                 .opacity(0.5)
                 .w_4()
-                .child(format!("{}", index + 1))
+                .child(format!("{}", index + 1)),
         )
         .child(
             div()
@@ -155,15 +155,15 @@ fn render_single_frame(index: usize, frame: &Value) -> Div {
                     div()
                         .text_sm()
                         .text_color(text_primary_color())
-                        .child(format!("{}::{}", class, method))
+                        .child(format!("{}::{}", class, method)),
                 )
                 .child(
                     div()
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.7)
-                        .child(format!("{}:{}", file, line))
-                )
+                        .child(format!("{}:{}", file, line)),
+                ),
         )
 }
 

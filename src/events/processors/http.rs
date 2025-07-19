@@ -41,9 +41,9 @@ pub fn process_http_event(content: &Value) -> Result<ProcessedEvent> {
     }
 
     let body = values
-        .get("Body")
+        .get("Data")
         .cloned()
-        .or_else(|| values.get("Data").cloned());
+        .or_else(|| values.get("Body").cloned());
 
     let duration_seconds = values.get("Duration").and_then(Value::as_f64);
     let connection_time_seconds = values.get("Connection time").and_then(Value::as_f64);

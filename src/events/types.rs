@@ -101,4 +101,3 @@ pub struct ApplicationLogEvent {
     pub context: Option<Value>,
     pub channel: Option<String>,
 }
-

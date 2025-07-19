@@ -36,14 +36,19 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                 "Empty log".to_string()
             };
         } else {
-            return Err(anyhow::anyhow!("Unexpected event type from application log processor"));
+            return Err(anyhow::anyhow!(
+                "Unexpected event type from application log processor"
+            ));
         }
     }
 
     Ok(entry)
 }
 
-pub fn render_application_log_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+pub fn render_application_log_event(
+    entry: &EventEntry,
+    _cx: &mut Context<crate::app::MyApp>,
+) -> Div {
     let content = entry
         .raw_payload
         .get("content")
@@ -59,7 +64,6 @@ pub fn render_application_log_event(entry: &EventEntry, _cx: &mut Context<crate:
         .child(render_origin_info(entry))
 }
 
-
 fn render_app_log_content(content: &Value) -> Div {
     let value = content
         .get("value")
@@ -71,9 +75,7 @@ fn render_app_log_content(content: &Value) -> Div {
         .and_then(Value::as_str)
         .unwrap_or("Info");
 
-    let channel = content
-        .get("channel")
-        .and_then(Value::as_str);
+    let channel = content.get("channel").and_then(Value::as_str);
 
     div()
         .flex()
