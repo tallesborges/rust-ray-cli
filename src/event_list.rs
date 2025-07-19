@@ -69,7 +69,8 @@ fn render_event_list(
 ) -> Div {
     div()
         .flex_1()
-        .overflow_hidden()
+        .overflow_y_hidden()
+        .max_h_full()
         .child(if events.is_empty() {
             render_empty_state().into_any_element()
         } else {
@@ -114,6 +115,7 @@ fn render_event_uniform_list(
                             .px_4()
                             .py_3()
                             .gap_1()
+                            .h_16()
                             .bg(bg_color)
                             .hover(|style| style.bg(hover_color()))
                             .cursor_pointer()
