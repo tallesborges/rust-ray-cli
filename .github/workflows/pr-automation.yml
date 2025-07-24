@@ -1,0 +1,353 @@
+name: Pull Request Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+
+      - name: Check PR size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const additions = pr.additions;
+            const deletions = pr.deletions;
+            const totalChanges = additions + deletions;
+
+            let size = 'small';
+            let color = '0e8a16'; // green
+
+            if (totalChanges > 1000) {
+              size = 'extra-large';
+              color = 'd93f0b'; // red
+            } else if (totalChanges > 500) {
+              size = 'large';
+              color = 'fbca04'; // yellow
+            } else if (totalChanges > 200) {
+              size = 'medium';
+              color = 'f9d0c4'; // orange
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [`size/${size}`]
+            });
+
+            if (size === 'extra-large') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `⚠️ This PR is quite large (${totalChanges} changes). Consider breaking it down into smaller PRs for easier review.`
+              });
+            }
+
+  auto-assign-reviewers:
+    name: Auto-assign Reviewers
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Auto-assign reviewers based on files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const codeOwners = {
+              'src/': ['@tallesborges'],
+              'Cargo.toml': ['@tallesborges'],
+              '.github/': ['@tallesborges'],
+              'README.md': ['@tallesborges']
+            };
+
+            const reviewers = new Set();
+            
+            files.forEach(file => {
+              Object.keys(codeOwners).forEach(pattern => {
+                if (file.filename.startsWith(pattern)) {
+                  codeOwners[pattern].forEach(owner => reviewers.add(owner.replace('@', '')));
+                }
+              });
+            });
+
+            if (reviewers.size > 0) {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                reviewers: Array.from(reviewers)
+              });
+            }
+
+  auto-label:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Auto-label based on files changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const labels = new Set();
+            
+            files.forEach(file => {
+              const filename = file.filename;
+              
+              if (filename.startsWith('src/')) {
+                labels.add('type: code');
+              }
+              
+              if (filename.includes('test') || filename.includes('spec')) {
+                labels.add('type: testing');
+              }
+              
+              if (filename.endsWith('.md') || filename.startsWith('docs/')) {
+                labels.add('type: documentation');
+              }
+              
+              if (filename.startsWith('.github/')) {
+                labels.add('type: ci/cd');
+              }
+              
+              if (filename === 'Cargo.toml' || filename === 'Cargo.lock') {
+                labels.add('type: dependencies');
+              }
+              
+              if (filename.includes('security') || filename.includes('audit')) {
+                labels.add('type: security');
+              }
+              
+              if (filename.includes('perf') || filename.includes('benchmark')) {
+                labels.add('type: performance');
+              }
+            });
+
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: Array.from(labels)
+              });
+            }
+
+  conflict-detection:
+    name: Merge Conflict Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check for merge conflicts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            if (pr.mergeable === false) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '⚠️ This PR has merge conflicts that need to be resolved before it can be merged.'
+              });
+              
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['needs: rebase']
+              });
+            }
+
+  pr-checklist:
+    name: PR Checklist Reminder
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Add PR checklist comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## PR Checklist
+
+            Thank you for contributing! Please ensure your PR meets these requirements:
+
+            ### Code Quality
+            - [ ] Code follows Rust formatting guidelines (\`cargo fmt\`)
+            - [ ] All clippy warnings are resolved (\`cargo clippy\`)
+            - [ ] No \`unwrap()\` calls - use proper error handling with \`?\`
+            - [ ] Tests are added for new functionality
+            - [ ] Documentation is updated if needed
+
+            ### Testing
+            - [ ] All tests pass locally (\`cargo test\`)
+            - [ ] Integration tests pass
+            - [ ] Application builds successfully (\`cargo build --release\`)
+            - [ ] Manual testing performed on macOS
+
+            ### Security
+            - [ ] No hardcoded secrets or credentials
+            - [ ] Dependencies are up to date and secure
+            - [ ] Code follows security best practices
+
+            ### Documentation
+            - [ ] README updated if functionality changes
+            - [ ] Code comments added for complex logic
+            - [ ] Commit messages follow conventional format
+
+            The CI pipeline will automatically check most of these items. Please review and check off completed items manually.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+  draft-detection:
+    name: Draft PR Handling
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft
+    steps:
+      - name: Handle draft PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['status: draft']
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '📝 This is a draft PR. The full CI pipeline will run once you mark it as ready for review.'
+            });
+
+  ready-for-review:
+    name: Ready for Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+    steps:
+      - name: Remove draft label and notify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Remove draft label
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'status: draft'
+              });
+            } catch (error) {
+              // Label might not exist, ignore error
+            }
+
+            // Add ready for review label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['status: ready-for-review']
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ This PR is now ready for review! The full CI pipeline will run automatically.'
+            });
+
+  auto-merge-dependabot:
+    name: Auto-merge Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    steps:
+      - name: Enable auto-merge for Dependabot PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Only auto-merge patch and minor updates
+            const title = pr.title.toLowerCase();
+            const isPatch = title.includes('patch') || title.match(/bump .* from .* to .*\.\d+\.\d+$/);
+            const isMinor = title.includes('minor') || title.match(/bump .* from .* to .*\.\d+\.\d+$/);
+
+            if (isPatch || isMinor) {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                merge_method: 'squash'
+              });
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '✅ Auto-merged dependency update after CI checks passed.'
+              });
+            }

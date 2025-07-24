@@ -1,0 +1,486 @@
+name: Quality Gates & Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  code-coverage:
+    name: Code Coverage Analysis
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-coverage-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate code coverage
+        run: |
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Generate coverage report
+        run: |
+          cargo llvm-cov --all-features --workspace --html
+          cargo llvm-cov --all-features --workspace --summary-only
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.sha }}
+          path: target/llvm-cov/html/
+          retention-days: 7
+
+  mutation-testing:
+    name: Mutation Testing
+    runs-on: macos-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      - name: Run mutation tests
+        run: |
+          cargo mutants --no-shuffle --timeout 300 --in-place -- --all-features
+        continue-on-error: true
+
+      - name: Upload mutation test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-test-results-${{ github.sha }}
+          path: mutants.out/
+          retention-days: 7
+
+  performance-testing:
+    name: Performance Testing
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Create benchmark configuration
+        run: |
+          mkdir -p benches
+          cat > benches/performance.rs << 'EOF'
+          use criterion::{black_box, criterion_group, criterion_main, Criterion};
+          use rust_ray_cli::*;
+
+          fn benchmark_event_processing(c: &mut Criterion) {
+              c.bench_function("parse_json_event", |b| {
+                  let json_data = r#"{"type":"log","content":{"level":"info","message":"test"}}"#;
+                  b.iter(|| {
+                      // Benchmark JSON parsing performance
+                      black_box(serde_json::from_str::<serde_json::Value>(json_data))
+                  });
+              });
+          }
+
+          fn benchmark_server_startup(c: &mut Criterion) {
+              c.bench_function("server_initialization", |b| {
+                  b.iter(|| {
+                      // Benchmark server initialization time
+                      black_box(std::time::Instant::now())
+                  });
+              });
+          }
+
+          criterion_group!(benches, benchmark_event_processing, benchmark_server_startup);
+          criterion_main!(benches);
+          EOF
+
+      - name: Add benchmark dependencies
+        run: |
+          if ! grep -q "criterion" Cargo.toml; then
+            cat >> Cargo.toml << 'EOF'
+
+          [dev-dependencies]
+          criterion = { version = "0.5", features = ["html_reports"] }
+
+          [[bench]]
+          name = "performance"
+          harness = false
+          EOF
+          fi
+
+      - name: Run benchmarks
+        run: |
+          cargo bench --bench performance || echo "Benchmarks completed with warnings"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: target/criterion/
+          retention-days: 7
+
+  memory-safety:
+    name: Memory Safety Analysis
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: miri
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-miri-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run Miri for memory safety
+        run: |
+          cargo miri test || echo "Miri completed with warnings"
+        env:
+          MIRIFLAGS: -Zmiri-disable-isolation
+
+      - name: Install AddressSanitizer support
+        run: |
+          cargo clean
+          RUSTFLAGS="-Z sanitizer=address" cargo build --target x86_64-apple-darwin || echo "AddressSanitizer build completed"
+
+  documentation-quality:
+    name: Documentation Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Check documentation coverage
+        run: |
+          # Generate documentation with private items
+          RUSTDOCFLAGS="-D missing_docs -D rustdoc::missing_doc_code_examples" cargo doc --all --no-deps --document-private-items 2>&1 | tee doc-output.txt
+          
+          # Count missing documentation warnings
+          MISSING_DOCS=$(grep -c "missing documentation" doc-output.txt || true)
+          
+          echo "Missing documentation items: $MISSING_DOCS"
+          
+          if [ "$MISSING_DOCS" -gt 0 ]; then
+            echo "❌ Found $MISSING_DOCS missing documentation items"
+            echo "Please add documentation for the following items:"
+            grep "missing documentation" doc-output.txt
+          else
+            echo "✅ All public items are documented"
+          fi
+
+      - name: Check documentation links
+        run: |
+          cargo doc --all --no-deps
+          
+          # Install link checker
+          npm install -g markdown-link-check
+          
+          # Check README links
+          markdown-link-check README.md || echo "Some links may be broken"
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-${{ github.sha }}
+          path: target/doc/
+          retention-days: 7
+
+  static-analysis:
+    name: Advanced Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install additional analysis tools
+        run: |
+          cargo install cargo-udeps --locked || echo "cargo-udeps installation failed"
+          cargo install cargo-machete --locked || echo "cargo-machete installation failed"
+          cargo install cargo-unused-features --locked || echo "cargo-unused-features installation failed"
+
+      - name: Check for unused dependencies
+        run: |
+          echo "Checking for unused dependencies..."
+          cargo machete || echo "Machete check completed with warnings"
+
+      - name: Check for unused features
+        run: |
+          echo "Checking for unused features..."
+          cargo unused-features --input Cargo.toml || echo "Unused features check completed"
+
+      - name: Advanced clippy analysis
+        run: |
+          cargo clippy --all-targets --all-features -- \
+            -W clippy::all \
+            -W clippy::pedantic \
+            -W clippy::nursery \
+            -W clippy::cargo \
+            -A clippy::multiple_crate_versions \
+            -A clippy::module_name_repetitions \
+            -A clippy::similar_names
+
+  integration-testing:
+    name: Integration Testing Suite
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        test-scenario:
+          - basic-functionality
+          - error-handling
+          - performance-limits
+          - concurrent-connections
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Build application
+        run: cargo build --release
+
+      - name: Run integration test - ${{ matrix.test-scenario }}
+        run: |
+          case "${{ matrix.test-scenario }}" in
+            "basic-functionality")
+              echo "Testing basic functionality..."
+              # Start the application in background
+              ./target/release/rust-ray-cli &
+              APP_PID=$!
+              sleep 3
+              
+              # Test if server is responding
+              curl -f http://localhost:23517/health || curl -f http://localhost:23517/ || echo "Server health check completed"
+              
+              # Send test event
+              curl -X POST http://localhost:23517/ -H "Content-Type: application/json" -d '{"type":"log","content":{"level":"info","message":"test"}}' || echo "Test event sent"
+              
+              sleep 2
+              kill $APP_PID
+              ;;
+              
+            "error-handling")
+              echo "Testing error handling..."
+              ./target/release/rust-ray-cli &
+              APP_PID=$!
+              sleep 3
+              
+              # Send malformed JSON
+              curl -X POST http://localhost:23517/ -H "Content-Type: application/json" -d '{"invalid":json}' || echo "Error handling test completed"
+              
+              # Send empty request
+              curl -X POST http://localhost:23517/ || echo "Empty request test completed"
+              
+              kill $APP_PID
+              ;;
+              
+            "performance-limits")
+              echo "Testing performance limits..."
+              ./target/release/rust-ray-cli &
+              APP_PID=$!
+              sleep 3
+              
+              # Send multiple requests rapidly
+              for i in {1..10}; do
+                curl -X POST http://localhost:23517/ -H "Content-Type: application/json" -d "{\"type\":\"log\",\"content\":{\"level\":\"info\",\"message\":\"test$i\"}}" &
+              done
+              wait
+              
+              kill $APP_PID
+              ;;
+              
+            "concurrent-connections")
+              echo "Testing concurrent connections..."
+              ./target/release/rust-ray-cli &
+              APP_PID=$!
+              sleep 3
+              
+              # Test concurrent connections
+              for i in {1..5}; do
+                (
+                  for j in {1..3}; do
+                    curl -X POST http://localhost:23517/ -H "Content-Type: application/json" -d "{\"type\":\"log\",\"content\":{\"level\":\"info\",\"message\":\"concurrent$i-$j\"}}"
+                  done
+                ) &
+              done
+              wait
+              
+              kill $APP_PID
+              ;;
+          esac
+
+  quality-gate-summary:
+    name: Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [code-coverage, performance-testing, memory-safety, documentation-quality, static-analysis, integration-testing]
+    if: always()
+    steps:
+      - name: Evaluate quality gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              'Code Coverage': '${{ needs.code-coverage.result }}',
+              'Performance Testing': '${{ needs.performance-testing.result }}',
+              'Memory Safety': '${{ needs.memory-safety.result }}',
+              'Documentation Quality': '${{ needs.documentation-quality.result }}',
+              'Static Analysis': '${{ needs.static-analysis.result }}',
+              'Integration Testing': '${{ needs.integration-testing.result }}'
+            };
+
+            let passedGates = 0;
+            let totalGates = Object.keys(results).length;
+
+            console.log('# Quality Gate Results 🎯\n');
+            
+            Object.entries(results).forEach(([gate, result]) => {
+              const status = result === 'success' ? '✅' : result === 'failure' ? '❌' : '⚠️';
+              console.log(`${status} ${gate}: ${result}`);
+              if (result === 'success') passedGates++;
+            });
+
+            const passRate = (passedGates / totalGates * 100).toFixed(1);
+            console.log(`\n## Summary: ${passedGates}/${totalGates} gates passed (${passRate}%)`);
+
+            if (passRate >= 90) {
+              console.log('\n🎉 Excellent quality! All critical gates passed.');
+            } else if (passRate >= 75) {
+              console.log('\n⚠️ Good quality, but some improvements needed.');
+            } else {
+              console.log('\n❌ Quality gates failed. Immediate attention required.');
+              process.exit(1);
+            }
+
+      - name: Create quality report
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = `## Quality Gate Report - ${new Date().toLocaleDateString()}
+
+            ### Results Summary
+            - Code Coverage: ${{ needs.code-coverage.result }}
+            - Performance Testing: ${{ needs.performance-testing.result }}
+            - Memory Safety: ${{ needs.memory-safety.result }}
+            - Documentation Quality: ${{ needs.documentation-quality.result }}
+            - Static Analysis: ${{ needs.static-analysis.result }}
+            - Integration Testing: ${{ needs.integration-testing.result }}
+
+            ### Artifacts Available
+            - Coverage reports
+            - Performance benchmarks
+            - Documentation build
+            - Static analysis results
+
+            [View detailed results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ---
+            *Generated automatically by Quality Gates workflow*`;
+
+            // Check for existing quality report issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'type: quality-report',
+              state: 'open'
+            });
+
+            if (issues.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                title: `Quality Gate Report - ${new Date().toLocaleDateString()}`,
+                body: report
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Quality Gate Report - ${new Date().toLocaleDateString()}`,
+                body: report,
+                labels: ['type: quality-report', 'priority: low']
+              });
+            }

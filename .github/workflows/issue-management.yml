@@ -1,0 +1,470 @@
+name: Issue & Project Management
+
+on:
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, closed, merged]
+  schedule:
+    - cron: '0 9 * * 1'  # Weekly on Monday at 9 AM UTC
+  workflow_dispatch:
+
+jobs:
+  auto-triage:
+    name: Auto-triage New Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+      - name: Auto-label based on issue content
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = issue.body?.toLowerCase() || '';
+            const labels = [];
+
+            // Auto-assign priority based on keywords
+            if (title.includes('critical') || title.includes('urgent') || body.includes('critical')) {
+              labels.push('priority: high');
+            } else if (title.includes('minor') || body.includes('minor improvement')) {
+              labels.push('priority: low');
+            } else {
+              labels.push('priority: medium');
+            }
+
+            // Auto-assign type based on content
+            if (title.includes('bug') || title.includes('error') || title.includes('broken') || 
+                body.includes('expected:') || body.includes('actual:')) {
+              labels.push('type: bug');
+            } else if (title.includes('feat') || title.includes('feature') || title.includes('enhancement') ||
+                       body.includes('feature request') || body.includes('would like')) {
+              labels.push('type: enhancement');
+            } else if (title.includes('doc') || title.includes('documentation') || 
+                       body.includes('documentation') || body.includes('readme')) {
+              labels.push('type: documentation');
+            } else if (title.includes('question') || title.includes('help') || 
+                       body.includes('how to') || body.includes('how do i')) {
+              labels.push('type: question');
+            } else if (title.includes('performance') || title.includes('slow') || 
+                       body.includes('performance') || body.includes('optimization')) {
+              labels.push('type: performance');
+            }
+
+            // Auto-assign component based on content
+            if (body.includes('cargo') || body.includes('dependencies') || title.includes('build')) {
+              labels.push('component: build');
+            } else if (body.includes('ui') || body.includes('interface') || body.includes('gui') ||
+                       title.includes('interface') || title.includes('ui')) {
+              labels.push('component: ui');
+            } else if (body.includes('server') || body.includes('http') || body.includes('port') ||
+                       title.includes('server') || title.includes('network')) {
+              labels.push('component: server');
+            } else if (body.includes('event') || body.includes('processing') || 
+                       title.includes('event') || title.includes('ray')) {
+              labels.push('component: events');
+            }
+
+            // Auto-assign OS based on content
+            if (body.includes('macos') || body.includes('mac os') || body.includes('apple') ||
+                title.includes('macos') || title.includes('mac')) {
+              labels.push('os: macos');
+            }
+
+            // Auto-assign difficulty for enhancement requests
+            if (labels.includes('type: enhancement')) {
+              if (body.includes('simple') || body.includes('easy') || body.includes('small change')) {
+                labels.push('good first issue');
+              } else if (body.includes('complex') || body.includes('major') || body.includes('architecture')) {
+                labels.push('difficulty: hard');
+              } else {
+                labels.push('difficulty: medium');
+              }
+            }
+
+            // Apply labels
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+            }
+
+      - name: Welcome new contributors
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            
+            // Check if this is the user's first issue
+            const { data: userIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator: issue.user.login,
+              state: 'all'
+            });
+
+            if (userIssues.length === 1) {
+              const welcomeMessage = `👋 Welcome to rust-ray-cli, @${issue.user.login}! 
+
+              Thank you for opening your first issue. To help us assist you better:
+
+              🐛 **For bugs**: Please include:
+              - Steps to reproduce the issue
+              - Expected vs actual behavior
+              - Your macOS version and Rust version
+              - Any error messages or logs
+
+              ✨ **For feature requests**: Please describe:
+              - The problem you're trying to solve
+              - Your proposed solution
+              - Any alternatives you've considered
+
+              A maintainer will review your issue soon. In the meantime, feel free to explore our [documentation](README.md) and [contribution guidelines](CONTRIBUTING.md).`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: welcomeMessage
+              });
+            }
+
+      - name: Auto-assign maintainers
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = issue.body?.toLowerCase() || '';
+
+            // Auto-assign based on expertise areas
+            let assignees = [];
+
+            if (title.includes('security') || body.includes('vulnerability') || 
+                title.includes('audit') || body.includes('security')) {
+              assignees.push('tallesborges');  // Security issues
+            } else if (title.includes('performance') || body.includes('slow') || 
+                       title.includes('benchmark') || body.includes('optimization')) {
+              assignees.push('tallesborges');  // Performance issues
+            } else if (title.includes('ui') || title.includes('interface') || 
+                       body.includes('gpui') || body.includes('rendering')) {
+              assignees.push('tallesborges');  // UI/UX issues
+            } else if (title.includes('critical') || title.includes('urgent')) {
+              assignees.push('tallesborges');  // Critical issues
+            }
+
+            if (assignees.length > 0) {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                assignees: assignees
+              });
+            }
+
+  issue-reminder:
+    name: Issue Follow-up Reminders
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Check for issues needing attention
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'updated',
+              direction: 'asc'
+            });
+
+            const now = new Date();
+            const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+            const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+
+            // Issues without response from maintainer in 3 days
+            const needsResponse = issues.filter(issue => {
+              if (issue.pull_request) return false;
+              
+              const hasWaitingLabel = issue.labels.some(label => 
+                label.name.includes('waiting') || label.name.includes('needs'));
+              
+              return !hasWaitingLabel && new Date(issue.updated_at) < threeDaysAgo;
+            });
+
+            // Issues waiting for user response for 7+ days
+            const waitingForUser = issues.filter(issue => {
+              if (issue.pull_request) return false;
+              
+              const hasWaitingLabel = issue.labels.some(label => 
+                label.name.includes('waiting') || label.name.includes('needs-info'));
+              
+              return hasWaitingLabel && new Date(issue.updated_at) < sevenDaysAgo;
+            });
+
+            // Process issues needing response
+            for (const issue of needsResponse.slice(0, 3)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `⏰ **Automated Reminder**: This issue has been open for a few days without maintainer response. We'll review it soon!
+
+                If this is urgent, please add the \`priority: high\` label.`
+              });
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['needs: maintainer-response']
+              });
+            }
+
+            // Process issues waiting for user response
+            for (const issue of waitingForUser.slice(0, 2)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `👋 **Friendly Reminder**: We're waiting for additional information to help resolve this issue.
+
+                If you're no longer experiencing this problem or have found a solution, please close the issue. Otherwise, please provide the requested information when you have a chance.
+
+                We'll automatically close this issue in 7 days if there's no response.`
+              });
+            }
+
+  project-metrics:
+    name: Project Metrics Collection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Collect and analyze project metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get repository data
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Get issues data
+            const { data: allIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+
+            const openIssues = allIssues.filter(issue => !issue.pull_request && issue.state === 'open');
+            const closedIssues = allIssues.filter(issue => !issue.pull_request && issue.state === 'closed');
+            const openPRs = allIssues.filter(issue => issue.pull_request && issue.state === 'open');
+            const closedPRs = allIssues.filter(issue => issue.pull_request && issue.state === 'closed');
+
+            // Calculate metrics
+            const totalIssues = openIssues.length + closedIssues.length;
+            const issueCloseRate = totalIssues > 0 ? (closedIssues.length / totalIssues * 100).toFixed(1) : 0;
+            
+            const totalPRs = openPRs.length + closedPRs.length;
+            const prMergeRate = totalPRs > 0 ? (closedPRs.length / totalPRs * 100).toFixed(1) : 0;
+
+            // Average time to close issues (last 10 closed issues)
+            const recentClosedIssues = closedIssues
+              .filter(issue => issue.closed_at)
+              .sort((a, b) => new Date(b.closed_at) - new Date(a.closed_at))
+              .slice(0, 10);
+
+            let avgTimeToClose = 0;
+            if (recentClosedIssues.length > 0) {
+              const totalTime = recentClosedIssues.reduce((sum, issue) => {
+                const created = new Date(issue.created_at);
+                const closed = new Date(issue.closed_at);
+                return sum + (closed - created);
+              }, 0);
+              avgTimeToClose = Math.round(totalTime / recentClosedIssues.length / (1000 * 60 * 60 * 24));
+            }
+
+            // Label distribution
+            const labelCounts = {};
+            openIssues.forEach(issue => {
+              issue.labels.forEach(label => {
+                labelCounts[label.name] = (labelCounts[label.name] || 0) + 1;
+              });
+            });
+
+            const topLabels = Object.entries(labelCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5);
+
+            const report = `## Project Metrics Report 📊
+
+            ### Repository Overview
+            - **Total Stars**: ${repo.stargazers_count} ⭐
+            - **Total Forks**: ${repo.forks_count} 🍴
+            - **Open Issues**: ${openIssues.length} 🐛
+            - **Open PRs**: ${openPRs.length} 🔄
+
+            ### Issue Management
+            - **Total Issues**: ${totalIssues}
+            - **Issue Close Rate**: ${issueCloseRate}% ✅
+            - **Average Time to Close**: ${avgTimeToClose} days ⏱️
+
+            ### Pull Request Management
+            - **Total PRs**: ${totalPRs}
+            - **PR Merge Rate**: ${prMergeRate}% 🔀
+
+            ### Most Common Labels
+            ${topLabels.map(([label, count]) => `- **${label}**: ${count} issues`).join('\n')}
+
+            ### Health Indicators
+            ${openIssues.length > 20 ? '⚠️ High number of open issues - consider triage' : '✅ Manageable number of open issues'}
+            ${openPRs.length > 10 ? '⚠️ High number of open PRs - consider review' : '✅ Manageable number of open PRs'}
+            ${avgTimeToClose > 14 ? '⚠️ Slow issue resolution - consider process improvement' : '✅ Good issue resolution time'}
+
+            ---
+            *Generated on ${new Date().toLocaleDateString()}*`;
+
+            console.log(report);
+
+            // Create or update metrics issue
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'type: metrics',
+              state: 'open'
+            });
+
+            if (existingIssues.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssues[0].number,
+                title: `Project Metrics - ${new Date().toLocaleDateString()}`,
+                body: report
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Project Metrics - ${new Date().toLocaleDateString()}`,
+                body: report,
+                labels: ['type: metrics', 'priority: low']
+              });
+            }
+
+  cleanup-closed-issues:
+    name: Clean Up Closed Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'closed'
+    steps:
+      - name: Clean up labels on closed issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            
+            // Remove "needs" labels from closed issues
+            const labelsToRemove = issue.labels
+              .filter(label => 
+                label.name.startsWith('needs:') || 
+                label.name.startsWith('waiting:') || 
+                label.name === 'status: stale'
+              )
+              .map(label => label.name);
+
+            for (const labelName of labelsToRemove) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: labelName
+                });
+              } catch (error) {
+                console.log(`Failed to remove label ${labelName}: ${error.message}`);
+              }
+            }
+
+            // Add resolution label if it was a bug
+            const isBug = issue.labels.some(label => label.name === 'type: bug');
+            if (isBug) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['status: resolved']
+              });
+            }
+
+  community-stats:
+    name: Community Statistics
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Generate community statistics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get contributors
+            const { data: contributors } = await github.rest.repos.listContributors({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Get recent activity (last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const { data: recentCommits } = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              since: thirtyDaysAgo.toISOString()
+            });
+
+            const { data: recentIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              since: thirtyDaysAgo.toISOString(),
+              state: 'all'
+            });
+
+            const newContributors = contributors.filter(contributor => {
+              const firstCommit = recentCommits.find(commit => 
+                commit.author && commit.author.login === contributor.login
+              );
+              return firstCommit;
+            });
+
+            const communityReport = `## Community Activity Report 🌟
+
+            ### 30-Day Summary
+            - **Total Contributors**: ${contributors.length}
+            - **New Contributors**: ${newContributors.length}
+            - **Recent Commits**: ${recentCommits.length}
+            - **Recent Issues**: ${recentIssues.length}
+
+            ### Top Contributors (All Time)
+            ${contributors.slice(0, 5).map(c => `- @${c.login} (${c.contributions} contributions)`).join('\n')}
+
+            ### New Contributors This Month
+            ${newContributors.length > 0 ? 
+              newContributors.map(c => `- Welcome @${c.login}! 🎉`).join('\n') : 
+              '- No new contributors this month'}
+
+            ### Community Health
+            ${contributors.length > 5 ? '✅ Active contributor community' : '⚠️ Limited contributor base - consider outreach'}
+            ${recentCommits.length > 10 ? '✅ Regular development activity' : '⚠️ Low commit activity'}
+            ${recentIssues.length > 5 ? '✅ Active community engagement' : '⚠️ Low community engagement'}
+
+            ---
+            *Thank you to all our contributors! 💚*`;
+
+            console.log(communityReport);

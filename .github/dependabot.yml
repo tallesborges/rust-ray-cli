@@ -1,0 +1,61 @@
+version: 2
+updates:
+  # Rust dependencies
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "tallesborges"
+    assignees:
+      - "tallesborges"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "type: dependencies"
+      - "priority: medium"
+    # Group patch updates together
+    groups:
+      patch-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+      minor-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+    # Security updates get their own PRs
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "tallesborges"
+    assignees:
+      - "tallesborges"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "type: ci/cd"
+      - "priority: low"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

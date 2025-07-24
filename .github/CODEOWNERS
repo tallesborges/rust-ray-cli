@@ -1,0 +1,20 @@
+# Global code owners
+* @tallesborges
+
+# Rust source code
+/src/ @tallesborges
+/Cargo.toml @tallesborges
+/Cargo.lock @tallesborges
+
+# Build and CI configuration
+/.github/ @tallesborges
+/rust-toolchain.toml @tallesborges
+
+# Documentation
+/README.md @tallesborges
+/CLAUDE.md @tallesborges
+/*.md @tallesborges
+
+# Security-sensitive files
+/.github/workflows/security.yml @tallesborges
+/deny.toml @tallesborges
