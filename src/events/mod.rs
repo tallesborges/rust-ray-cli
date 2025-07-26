@@ -4,6 +4,7 @@ use serde_json::Value;
 pub mod application_log;
 pub mod base;
 pub mod cache;
+pub mod event_type;
 pub mod exception;
 pub mod http;
 pub mod log;
@@ -13,6 +14,7 @@ pub mod table;
 pub mod types;
 
 pub use base::{EventEntry, EventProcessor, EventUIRenderer};
+pub use event_type::EventType;
 
 /// Create an event processor for the given event type
 pub fn create_processor(event_type: &str) -> Option<EventProcessor> {

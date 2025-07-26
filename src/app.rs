@@ -1,6 +1,7 @@
 use crate::event_details::{render_event_details_panel, EventDetailsProps};
 use crate::event_list::render_event_list_panel;
 use crate::event_storage::EventStorage;
+use crate::events::EventType;
 use crate::ui_components::background_color;
 use gpui::prelude::*;
 use gpui::{
@@ -22,7 +23,7 @@ pub struct MyApp {
     selected_row: Option<usize>,
     total_rows: usize,
     scroll_handle: UniformListScrollHandle,
-    event_type_filters: HashSet<String>,
+    event_type_filters: HashSet<EventType>,
     // Performance optimization: cached filtered events
     filter_cache: RefCell<HashMap<u64, Arc<Vec<crate::events::EventEntry>>>>,
     cache_generation: RefCell<u64>,
@@ -30,16 +31,8 @@ pub struct MyApp {
 
 impl MyApp {
     pub fn new(payload_storage: Arc<EventStorage>) -> Self {
-        let mut event_type_filters = HashSet::new();
-        // Enable all event types by default - based on actual event types generated
-        event_type_filters.insert("cache".to_string());
-        event_type_filters.insert("http".to_string());
-        event_type_filters.insert("log".to_string());
-        event_type_filters.insert("query".to_string());
-        event_type_filters.insert("exception".to_string());
-        event_type_filters.insert("application_log".to_string());
-        event_type_filters.insert("request".to_string());
-        event_type_filters.insert("table".to_string());
+        // Enable all event types by default - much simpler with enum
+        let event_type_filters = EventType::all().into_iter().collect::<HashSet<_>>();
         
         Self {
             payload_storage,
@@ -70,7 +63,7 @@ impl MyApp {
         cx.write_to_clipboard(ClipboardItem::new_string(text));
     }
 
-    pub fn toggle_event_type_filter(&mut self, event_type: String, cx: &mut Context<Self>) {
+    pub fn toggle_event_type_filter(&mut self, event_type: EventType, cx: &mut Context<Self>) {
         if self.event_type_filters.contains(&event_type) {
             self.event_type_filters.remove(&event_type);
         } else {
@@ -101,8 +94,12 @@ impl MyApp {
         let filtered: Vec<crate::events::EventEntry> = all_events
             .iter()
             .filter(|event| {
-                // Filter by event type only
-                self.event_type_filters.contains(&event.event_type)
+                // Filter by event type - now with type safety!
+                if let Ok(event_type) = event.event_type.parse::<EventType>() {
+                    self.event_type_filters.contains(&event_type)
+                } else {
+                    false // Filter out unknown event types
+                }
             })
             .map(|arc_event| (**arc_event).clone())  // Dereference Arc then clone
             .collect();

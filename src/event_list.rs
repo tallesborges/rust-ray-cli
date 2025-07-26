@@ -1,4 +1,4 @@
-use crate::events::EventEntry;
+use crate::events::{EventEntry, EventType};
 use crate::ui_components::{
     background_color, border_color, hover_color, selection_color, text_primary_color,
     text_secondary_color,
@@ -9,7 +9,7 @@ use std::collections::HashSet;
 
 pub fn render_event_list_panel(
     events: &[EventEntry],  // Use slice instead of Vec reference for better performance
-    event_type_filters: &HashSet<String>,
+    event_type_filters: &HashSet<EventType>,
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
     cx: &mut Context<crate::app::MyApp>,
@@ -27,19 +27,11 @@ pub fn render_event_list_panel(
 }
 
 fn render_header_with_filters(
-    event_type_filters: &HashSet<String>,
+    event_type_filters: &HashSet<EventType>,
     cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
-    let event_types = vec![
-        "cache".to_string(), 
-        "http".to_string(), 
-        "request".to_string(),
-        "log".to_string(), 
-        "query".to_string(), 
-        "exception".to_string(), 
-        "application_log".to_string(),
-        "table".to_string()
-    ];
+    // Much simpler - just get all event types from the enum
+    let event_types = EventType::all();
 
     div()
         .flex()
@@ -95,8 +87,8 @@ fn render_header_with_filters(
 }
 
 fn render_filter_checkboxes(
-    event_types: Vec<String>,
-    event_type_filters: &HashSet<String>,
+    event_types: Vec<EventType>,
+    event_type_filters: &HashSet<EventType>,
     cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
     div()
@@ -124,9 +116,9 @@ fn render_filter_checkboxes(
                         .on_mouse_down(
                             gpui::MouseButton::Left,
                             {
-                                let event_type_clone = event_type.clone();
+                                let event_type_copy = event_type; // EventType is Copy, no need to clone
                                 cx.listener(move |this, _event, _window, cx| {
-                                    this.toggle_event_type_filter(event_type_clone.clone(), cx);
+                                    this.toggle_event_type_filter(event_type_copy, cx);
                                 })
                             },
                         )
@@ -140,7 +132,7 @@ fn render_filter_checkboxes(
                             div()
                                 .text_xs()
                                 .text_color(checkbox_style)
-                                .child(event_type),
+                                .child(event_type.display_name()), // Use pretty display name
                         )
                 })
                 .collect::<Vec<_>>(),
