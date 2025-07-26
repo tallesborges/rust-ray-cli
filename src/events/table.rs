@@ -45,11 +45,13 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                     "Forgotten" => format!("Cache key forgotten: {}", cache_event.key),
                     _ => format!("{} ({})", cache_event.operation, cache_event.key),
                 };
+                entry.event_type = "cache".to_string(); // Fix: Set correct event type
             }
             ProcessedEvent::Http(ref http_event) => match http_event.event_type {
                 HttpEventType::Request => {
                     entry.label = "HTTP: Request".to_string();
                     entry.description = http_event.url.clone();
+                    entry.event_type = "request".to_string(); // Fix: Set correct event type
                 }
                 HttpEventType::Response => {
                     entry.label = "HTTP: Response".to_string();
@@ -58,6 +60,7 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
                     } else {
                         http_event.url.clone()
                     };
+                    entry.event_type = "http".to_string(); // Fix: Set correct event type
                 }
             },
             ProcessedEvent::Table(ref table_event) => {
@@ -174,7 +177,14 @@ fn render_table_data(values: &Value) -> Div {
                                         .text_xs()
                                         .text_color(text_monospace_color())
                                         .child(
-                                            serde_json::to_string_pretty(value).unwrap_or_default(),
+                                            // Optimize JSON serialization - use compact format for large objects
+                                            match value {
+                                                serde_json::Value::String(s) => s.clone(),
+                                                serde_json::Value::Number(n) => n.to_string(),
+                                                serde_json::Value::Bool(b) => b.to_string(),
+                                                serde_json::Value::Null => "null".to_string(),
+                                                _ => serde_json::to_string_pretty(value).unwrap_or_default(),
+                                            }
                                         ),
                                 ),
                         );
@@ -201,7 +211,21 @@ fn render_table_data(values: &Value) -> Div {
                             .font_family("monospace")
                             .text_xs()
                             .text_color(gpui::rgb(0xd1d5db))
-                            .child(serde_json::to_string_pretty(values).unwrap_or_default()),
+                            .child(
+                                // Optimize large JSON serialization with size limit
+                                match serde_json::to_string_pretty(values) {
+                                    Ok(json_str) => {
+                                        if json_str.len() > 10000 {
+                                            format!("{}... [truncated {} chars]", 
+                                                &json_str[..1000], 
+                                                json_str.len() - 1000)
+                                        } else {
+                                            json_str
+                                        }
+                                    }
+                                    Err(_) => "Invalid JSON".to_string(),
+                                }
+                            ),
                     ),
                 ),
         )

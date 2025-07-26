@@ -12,8 +12,9 @@ pub enum LogLevel {
 }
 
 pub struct EventStorage {
-    events: Mutex<Vec<EventEntry>>,
+    events: Mutex<Vec<Arc<EventEntry>>>,  // Use Arc to avoid cloning large entries
     server_info: Mutex<String>,
+    generation: Mutex<u64>,  // Track changes for cache invalidation
 }
 
 impl EventStorage {
@@ -21,6 +22,7 @@ impl EventStorage {
         Self {
             events: Mutex::new(Vec::new()),
             server_info: Mutex::new(String::new()),
+            generation: Mutex::new(0),
         }
     }
 
@@ -94,7 +96,11 @@ impl EventStorage {
                 );
 
                 let mut events = self.events.lock().unwrap();
-                events.push(entry);
+                events.push(Arc::new(entry));
+                
+                // Increment generation for cache invalidation
+                let mut generation = self.generation.lock().unwrap();
+                *generation += 1;
             }
             Err(e) => {
                 self.error(
@@ -107,12 +113,60 @@ impl EventStorage {
 
     pub fn get_events(&self) -> Vec<EventEntry> {
         let events = self.events.lock().unwrap();
-        events.iter().rev().map(|entry| entry.clone()).collect()
+        events.iter().rev().map(|entry| (**entry).clone()).collect()
+    }
+    
+    // Optimized version that returns references to avoid cloning
+    pub fn get_events_optimized(&self) -> Vec<Arc<EventEntry>> {
+        let events = self.events.lock().unwrap();
+        // Reverse iterator without collecting - more memory efficient
+        events.iter().rev().cloned().collect()
+    }
+    
+    // LAZY LOADING: Get event by index without loading full details
+    pub fn get_event_by_index(&self, index: usize) -> Option<Arc<EventEntry>> {
+        let events = self.events.lock().unwrap();
+        let reversed_index = events.len().saturating_sub(index + 1);
+        events.get(reversed_index).cloned()
+    }
+    
+    // VIEWPORT OPTIMIZATION: Get only events in viewport range
+    pub fn get_events_in_range(&self, start: usize, end: usize) -> Vec<Arc<EventEntry>> {
+        let events = self.events.lock().unwrap();
+        let total = events.len();
+        
+        // Convert from viewport indices to storage indices (reversed)
+        let storage_start = total.saturating_sub(end);
+        let storage_end = total.saturating_sub(start);
+        
+        if storage_start >= total || storage_end > total {
+            return Vec::new();
+        }
+        
+        events[storage_start..storage_end]
+            .iter()
+            .rev() // Reverse to match UI ordering
+            .cloned()
+            .collect()
+    }
+    
+    // PERFORMANCE: Get events count without loading data
+    pub fn get_events_count(&self) -> usize {
+        let events = self.events.lock().unwrap();
+        events.len()
+    }
+    
+    pub fn get_generation(&self) -> u64 {
+        *self.generation.lock().unwrap()
     }
 
     pub fn clear_events(&self) {
         let mut events = self.events.lock().unwrap();
         events.clear();
+        
+        // Increment generation for cache invalidation
+        let mut generation = self.generation.lock().unwrap();
+        *generation += 1;
     }
 }
 

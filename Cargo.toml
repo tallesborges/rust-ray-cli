@@ -9,6 +9,27 @@ name = "rust-ray-cli"
 version = "0.1.0"
 edition = "2021"
 
+# Performance optimization profiles
+[profile.release]
+# Maximum optimization for production builds
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = 'abort'
+overflow-checks = false
+
+[profile.dev]
+# Faster compilation for development
+opt-level = 1
+overflow-checks = true
+
+# High performance release profile for benchmarking
+[profile.release-fast]
+inherits = "release"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
 [dependencies]
 # workspace
 gpui = { workspace = true }
@@ -25,3 +46,10 @@ http-body-util = "0.1"
 bytes = "1.8.0"
 tl = "0.7.8"
 anyhow = "1.0.93"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false
