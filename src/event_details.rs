@@ -2,7 +2,6 @@ use crate::events::{get_ui_renderer, EventEntry};
 use crate::ui_components::{copy_button, text_primary_color, text_secondary_color};
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
-use std::sync::Arc;
 use std::cell::RefCell;
 
 // LAZY LOADING: Event details with deferred content loading
@@ -14,13 +13,12 @@ pub struct EventDetailsProps<'a> {
 #[derive(Clone)]
 struct DetailsCache {
     entry_id: String,
-    rendered_content: Arc<gpui::AnyElement>,
     timestamp: std::time::Instant,
 }
 
 // Global details cache to avoid re-rendering complex content
 thread_local! {
-    static DETAILS_CACHE: RefCell<Option<DetailsCache>> = RefCell::new(None);
+    static DETAILS_CACHE: RefCell<Option<DetailsCache>> = const { RefCell::new(None) };
 }
 
 pub fn render_event_details_panel(

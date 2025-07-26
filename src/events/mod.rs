@@ -94,7 +94,7 @@ pub fn process_event(event_type: &str, payload: &Value) -> Result<EventEntry> {
         Some(processor) => processor.process(payload),
         None => Ok(EventEntry {
             timestamp: String::new(),
-            label: format!("Unknown Event: {}", event_type),
+            label: format!("Unknown Event: {event_type}"),
             description: "Unknown event type".to_string(),
             content_type: "json".to_string(),
             event_type: event_type.to_string(),

@@ -27,12 +27,12 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
         if let ProcessedEvent::Query(ref query_event) = processed_event {
             // Extract the SQL operation type (SELECT, INSERT, UPDATE, etc.)
             let operation_type =
-                if let Some(first_word) = query_event.sql.trim().split_whitespace().next() {
+                if let Some(first_word) = query_event.sql.split_whitespace().next() {
                     first_word.to_uppercase()
                 } else {
                     "SQL".to_string()
                 };
-            entry.label = format!("Query: {}", operation_type);
+            entry.label = format!("Query: {operation_type}");
 
             let description_sql = if query_event.sql.len() > 50 {
                 format!("{}...", &query_event.sql[..50].trim())
@@ -41,7 +41,7 @@ pub fn process(payload: &Value) -> Result<EventEntry> {
             };
 
             if let Some(time) = query_event.duration_ms {
-                entry.description = format!("{} ({}ms)", description_sql, time);
+                entry.description = format!("{description_sql} ({time}ms)");
             } else {
                 entry.description = description_sql;
             }
@@ -82,9 +82,9 @@ fn render_query_metrics(content: &Value) -> Div {
         .to_string();
 
     let time_display = if time < 1.0 {
-        format!("{:.3}ms", time)
+        format!("{time:.3}ms")
     } else if time < 1000.0 {
-        format!("{:.1}ms", time)
+        format!("{time:.1}ms")
     } else {
         format!("{:.2}s", time / 1000.0)
     };
@@ -151,7 +151,7 @@ fn render_origin_info(entry: &EventEntry) -> Div {
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.7)
-                        .child(format!("{}:{} • {}", file, line, hostname)),
+                        .child(format!("{file}:{line} • {hostname}")),
                 )
         } else {
             div() // Empty div if no origin info

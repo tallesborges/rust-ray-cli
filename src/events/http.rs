@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::events::base::{extract_timestamp, EventEntry};
 use crate::events::processors::http::process_http_event;
 use crate::events::types::{HttpEvent, HttpEventType, ProcessedEvent};
@@ -80,7 +82,7 @@ fn render_http_header(http_event: &HttpEvent) -> Div {
                     .text_color(match http_event.event_type {
                         HttpEventType::Request => rgb(0x22c55e),
                         HttpEventType::Response => match http_event.status_code {
-                            Some(status) if status >= 200 && status < 300 => rgb(0x22c55e),
+                            Some(status) if (200..300).contains(&status) => rgb(0x22c55e),
                             Some(status) if status >= 400 => rgb(0xef4444),
                             Some(status) if status >= 300 => rgb(0xf59e0b),
                             _ => text_secondary_color().into(),
@@ -142,25 +144,28 @@ fn render_headers(http_event: &HttpEvent) -> Div {
                 .bg(rgb(0x18181b))
                 .border_1()
                 .border_color(border_color())
-                .children(http_event.headers.iter().map(|(key, value)| {
-                    div()
-                        .flex()
-                        .gap_2()
-                        .text_xs()
-                        .font_family("monospace")
-                        .child(
-                            div()
-                                .min_w_32()
-                                .text_color(text_secondary_color())
-                                .child(format!("{}:", key)),
-                        )
-                        .child(
-                            div()
-                                .flex_1()
-                                .text_color(text_primary_color())
-                                .child(value.to_string()),
-                        )
-                })),
+                .children({
+                    let sorted_headers: BTreeMap<_, _> = http_event.headers.iter().collect();
+                    sorted_headers.into_iter().map(|(key, value)| {
+                        div()
+                            .flex()
+                            .gap_2()
+                            .text_xs()
+                            .font_family("monospace")
+                            .child(
+                                div()
+                                    .min_w_32()
+                                    .text_color(text_secondary_color())
+                                    .child(format!("{key}:")),
+                            )
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .text_color(text_primary_color())
+                                    .child(value.to_string()),
+                            )
+                    })
+                }),
         )
 }
 
@@ -293,7 +298,7 @@ fn render_origin_info(entry: &EventEntry) -> Div {
             .text_xs()
             .text_color(text_secondary_color())
             .opacity(0.7)
-            .child(format!("{}:{}", file, line))
+            .child(format!("{file}:{line}"))
     } else {
         div()
     }
@@ -547,6 +552,8 @@ fn render_table_request_size_metric(values: &Value) -> Div {
 
 fn render_table_http_headers(values: &Value) -> Div {
     if let Some(headers) = values.get("Headers").and_then(Value::as_object) {
+        let sorted_headers: BTreeMap<_, _> = headers.iter().collect();
+
         div()
             .flex()
             .flex_col()
@@ -568,7 +575,7 @@ fn render_table_http_headers(values: &Value) -> Div {
                     .bg(rgb(0x18181b))
                     .border_1()
                     .border_color(border_color())
-                    .children(headers.iter().map(|(key, value)| {
+                    .children(sorted_headers.iter().map(|(key, value)| {
                         let value_str = if let Some(val_str) = value.as_str() {
                             val_str.to_string()
                         } else if let Some(val_array) = value.as_array() {
@@ -590,7 +597,7 @@ fn render_table_http_headers(values: &Value) -> Div {
                                 div()
                                     .min_w_32()
                                     .text_color(text_secondary_color())
-                                    .child(format!("{}:", key)),
+                                    .child(format!("{key}:")),
                             )
                             .child(
                                 div()
@@ -663,7 +670,7 @@ fn render_table_origin_info(entry: &EventEntry) -> Div {
             .text_xs()
             .text_color(text_secondary_color())
             .opacity(0.7)
-            .child(format!("{}:{}", file, line))
+            .child(format!("{file}:{line}"))
     } else {
         div()
     }

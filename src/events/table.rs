@@ -261,7 +261,7 @@ fn render_origin_info(entry: &EventEntry) -> Div {
                         div()
                             .text_xs()
                             .text_color(text_monospace_color())
-                            .child(format!("{}:{} on {}", file, line, hostname)),
+                            .child(format!("{file}:{line} on {hostname}")),
                     ),
             );
         }

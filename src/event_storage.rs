@@ -37,17 +37,17 @@ impl EventStorage {
                 LogLevel::Error => "ERROR",
             };
 
-            let log_line = format!("[{}] [{} {}] {}", timestamp, level_str, source, message);
+            let log_line = format!("[{timestamp}] [{level_str} {source}] {message}");
 
             match level {
                 LogLevel::Error => {
                     let mut stderr = io::stderr();
-                    let _ = writeln!(stderr, "{}", log_line);
+                    let _ = writeln!(stderr, "{log_line}");
                     let _ = stderr.flush();
                 }
                 _ => {
                     let mut stdout = io::stdout();
-                    let _ = writeln!(stdout, "{}", log_line);
+                    let _ = writeln!(stdout, "{log_line}");
                     let _ = stdout.flush();
                 }
             }
@@ -78,7 +78,7 @@ impl EventStorage {
 
         self.info(
             "EventStorage",
-            &format!("Processing event of type: {}", event_type),
+            &format!("Processing event of type: {event_type}"),
         );
 
         match process_event_directly(event_type, event) {
@@ -105,16 +105,12 @@ impl EventStorage {
             Err(e) => {
                 self.error(
                     "EventStorage",
-                    &format!("Failed to process event of type {}: {}", event_type, e),
+                    &format!("Failed to process event of type {event_type}: {e}"),
                 );
             }
         }
     }
 
-    pub fn get_events(&self) -> Vec<EventEntry> {
-        let events = self.events.lock().unwrap();
-        events.iter().rev().map(|entry| (**entry).clone()).collect()
-    }
     
     // Optimized version that returns references to avoid cloning
     pub fn get_events_optimized(&self) -> Vec<Arc<EventEntry>> {
@@ -123,38 +119,8 @@ impl EventStorage {
         events.iter().rev().cloned().collect()
     }
     
-    // LAZY LOADING: Get event by index without loading full details
-    pub fn get_event_by_index(&self, index: usize) -> Option<Arc<EventEntry>> {
-        let events = self.events.lock().unwrap();
-        let reversed_index = events.len().saturating_sub(index + 1);
-        events.get(reversed_index).cloned()
-    }
     
-    // VIEWPORT OPTIMIZATION: Get only events in viewport range
-    pub fn get_events_in_range(&self, start: usize, end: usize) -> Vec<Arc<EventEntry>> {
-        let events = self.events.lock().unwrap();
-        let total = events.len();
-        
-        // Convert from viewport indices to storage indices (reversed)
-        let storage_start = total.saturating_sub(end);
-        let storage_end = total.saturating_sub(start);
-        
-        if storage_start >= total || storage_end > total {
-            return Vec::new();
-        }
-        
-        events[storage_start..storage_end]
-            .iter()
-            .rev() // Reverse to match UI ordering
-            .cloned()
-            .collect()
-    }
     
-    // PERFORMANCE: Get events count without loading data
-    pub fn get_events_count(&self) -> usize {
-        let events = self.events.lock().unwrap();
-        events.len()
-    }
     
     pub fn get_generation(&self) -> u64 {
         *self.generation.lock().unwrap()
@@ -177,7 +143,7 @@ pub fn process_event(event: &Value, storage: &Arc<EventStorage>) {
         .unwrap_or("unknown");
     storage.info(
         "Processing",
-        &format!("Received event of type: {}", event_type),
+        &format!("Received event of type: {event_type}"),
     );
     storage.add_event(event);
 }

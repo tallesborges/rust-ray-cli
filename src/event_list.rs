@@ -212,12 +212,19 @@ fn render_event_uniform_list(
                             .gap_1()
                             .h(gpui::px(item_height as f32)) // Fixed height for virtual scrolling
                             .bg(bg_color)
-                            .hover(|style| style.bg(hover_color()))
+                            .when(!is_selected, |div| {
+                                div.hover(|style| style.bg(hover_color()))
+                            })
                             .cursor_pointer()
                             .on_mouse_down(
                                 gpui::MouseButton::Left,
                                 cx.listener(move |this, _event, _window, cx| {
-                                    this.select_row(index, cx);
+                                    // Prevent multiple rapid selections and event bubbling
+                                    cx.stop_propagation();
+                                    // Only select if not already selected to prevent unnecessary re-renders
+                                    if !this.is_row_selected(index) {
+                                        this.select_row(index, cx);
+                                    }
                                 }),
                             )
                             .child(
@@ -276,15 +283,3 @@ fn render_event_description_optimized(description: &str) -> Div {
         .child(display_desc)
 }
 
-// LEGACY FUNCTIONS: Keep for backward compatibility
-fn render_event_timestamp(timestamp: &str) -> Div {
-    render_event_timestamp_optimized(timestamp)
-}
-
-fn render_event_label(label: &str) -> Div {
-    render_event_label_optimized(label)
-}
-
-fn render_event_description(description: &str) -> Div {
-    render_event_description_optimized(description)
-}

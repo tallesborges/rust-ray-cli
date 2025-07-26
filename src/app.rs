@@ -16,13 +16,6 @@ use std::collections::HashMap;
 
 actions!(app, [Quit]);
 
-// Cached filter result with hash for invalidation
-#[derive(Clone)]
-struct FilteredEventsCache {
-    events: Arc<Vec<crate::events::EventEntry>>,
-    filter_hash: u64,
-    generation: u64,
-}
 
 pub struct MyApp {
     payload_storage: Arc<EventStorage>,
@@ -88,8 +81,9 @@ impl MyApp {
         cx.notify();
     }
 
-    pub fn is_event_type_enabled(&self, event_type: &str) -> bool {
-        self.event_type_filters.contains(event_type)
+
+    pub fn is_row_selected(&self, index: usize) -> bool {
+        self.selected_row == Some(index)
     }
 
     // Highly optimized cached filtering with minimal allocations
@@ -141,11 +135,6 @@ impl MyApp {
         self.filter_cache.borrow_mut().clear();
     }
     
-    // Method to manually clear all caches for debugging/profiling
-    pub fn clear_all_caches(&self) {
-        self.filter_cache.borrow_mut().clear();
-        *self.cache_generation.borrow_mut() += 1;
-    }
 }
 
 impl Render for MyApp {
@@ -154,7 +143,19 @@ impl Render for MyApp {
         let events = self.get_filtered_events();
         self.total_rows = events.len();
 
-        let selected_entry = self.selected_row.and_then(|index| events.get(index));
+        // Ensure stable selection - cache the selected entry to prevent changes during mouse events
+        // This prevents header values from changing during mouse movement over the event list
+        let selected_entry = if let Some(index) = self.selected_row {
+            if index < events.len() {
+                events.get(index)
+            } else {
+                // Handle case where events changed but selection index is stale
+                self.selected_row = if events.is_empty() { None } else { Some(0) };
+                events.first()
+            }
+        } else {
+            None
+        };
 
         div()
             .flex()

@@ -83,7 +83,7 @@ fn render_exception_details(content: &Value) -> Div {
                 .text_sm()
                 .text_color(text_primary_color())
                 .child(if !message.is_empty() {
-                    format!("{}: {}", class, message)
+                    format!("{class}: {message}")
                 } else {
                     class.to_string()
                 }),
@@ -155,14 +155,14 @@ fn render_single_frame(index: usize, frame: &Value) -> Div {
                     div()
                         .text_sm()
                         .text_color(text_primary_color())
-                        .child(format!("{}::{}", class, method)),
+                        .child(format!("{class}::{method}")),
                 )
                 .child(
                     div()
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.7)
-                        .child(format!("{}:{}", file, line)),
+                        .child(format!("{file}:{line}")),
                 ),
         )
 }
@@ -191,7 +191,7 @@ fn render_origin_info(entry: &EventEntry) -> Div {
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.7)
-                        .child(format!("{}:{} • {}", file, line, hostname)),
+                        .child(format!("{file}:{line} • {hostname}")),
                 )
         } else {
             div() // Empty div if no origin info

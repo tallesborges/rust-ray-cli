@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     event_storage.info("Main", "Starting HTTP server");
     tokio::spawn(async move {
         if let Err(e) = start_server(server_storage.clone()).await {
-            server_storage.error("Main", &format!("Server error: {}", e));
+            server_storage.error("Main", &format!("Server error: {e}"));
         }
     });
 

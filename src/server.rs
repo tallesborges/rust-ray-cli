@@ -17,12 +17,12 @@ pub async fn start_server(
     let addr = SocketAddr::from(([127, 0, 0, 1], 23517));
     let listener = TcpListener::bind(addr).await?;
 
-    let server_msg = format!("Server listening on {}", addr);
+    let server_msg = format!("Server listening on {addr}");
 
     // Store server info in event storage for display
     event_storage.set_server_info(server_msg.clone());
     // Only log this once at startup
-    event_storage.info("Server", &format!("Started and listening on {}", addr));
+    event_storage.info("Server", &format!("Started and listening on {addr}"));
 
     loop {
         let (stream, _) = listener.accept().await?;
@@ -37,7 +37,7 @@ pub async fn start_server(
             });
 
             if let Err(err) = http1::Builder::new().serve_connection(io, service).await {
-                let error_msg = format!("Error serving connection: {:?}", err);
+                let error_msg = format!("Error serving connection: {err:?}");
                 error_storage.error("Server", &error_msg);
             }
         });
@@ -57,7 +57,7 @@ async fn handle_request(
             let body_bytes = match req.collect().await {
                 Ok(collected) => collected.to_bytes(),
                 Err(e) => {
-                    let error_msg = format!("Failed to read body: {}", e);
+                    let error_msg = format!("Failed to read body: {e}");
                     event_storage.error("Request", &error_msg);
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
@@ -81,7 +81,7 @@ async fn handle_request(
             let payload: Value = match serde_json::from_str(&body_str) {
                 Ok(v) => v,
                 Err(e) => {
-                    let error_msg = format!("Invalid JSON: {}", e);
+                    let error_msg = format!("Invalid JSON: {e}");
                     event_storage.error("Request", &error_msg);
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)

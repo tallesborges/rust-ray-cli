@@ -99,7 +99,7 @@ fn render_app_log_content(content: &Value) -> Div {
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.5)
-                        .child(format!("• {}", ch))
+                        .child(format!("• {ch}"))
                 } else {
                     div()
                 }),
@@ -158,7 +158,7 @@ fn render_origin_info(entry: &EventEntry) -> Div {
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.7)
-                        .child(format!("{}:{} • {}", file, line, hostname)),
+                        .child(format!("{file}:{line} • {hostname}")),
                 )
         } else {
             div() // Empty div if no origin info

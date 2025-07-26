@@ -475,7 +475,7 @@ fn format_duration(seconds: u64) -> String {
     } else if seconds > 60 {
         format!("{:.1}m", seconds as f64 / 60.0)
     } else {
-        format!("{}s", seconds)
+        format!("{seconds}s")
     }
 }
 
@@ -494,7 +494,7 @@ fn render_cache_origin_info(entry: &EventEntry) -> Div {
             .text_xs()
             .text_color(text_secondary_color())
             .opacity(0.7)
-            .child(format!("{}:{}", file, line))
+            .child(format!("{file}:{line}"))
     } else {
         div()
     }
@@ -515,7 +515,7 @@ fn render_table_cache_origin_info(entry: &EventEntry) -> Div {
             .text_xs()
             .text_color(text_secondary_color())
             .opacity(0.7)
-            .child(format!("{}:{}", file, line))
+            .child(format!("{file}:{line}"))
     } else {
         div()
     }
