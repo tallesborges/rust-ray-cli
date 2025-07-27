@@ -12,6 +12,7 @@ use app::run_app;
 use event_storage::EventStorage;
 use server::start_server;
 use std::sync::Arc;
+use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -31,10 +32,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_storage = Arc::clone(&event_storage);
 
-    // Spawn the HTTP server
+    // Create shutdown channel
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+
+    // Spawn the HTTP server with shutdown signal
     event_storage.info("Main", "Starting HTTP server");
-    tokio::spawn(async move {
-        if let Err(e) = start_server(server_storage.clone()).await {
+    let server_handle = tokio::spawn(async move {
+        if let Err(e) = start_server(server_storage.clone(), shutdown_rx).await {
             server_storage.error("Main", &format!("Server error: {e}"));
         }
     });
@@ -43,7 +47,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     event_storage.info("Main", "Initializing GUI application");
     event_storage.info("Main", "Starting GUI event loop");
 
-    run_app(event_storage)
+    let result = run_app(event_storage, shutdown_tx);
+    
+    // Wait for server to shutdown gracefully
+    let _ = server_handle.await;
+    
+    result
 }
 
 

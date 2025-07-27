@@ -10,9 +10,11 @@ use serde_json::Value;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::sync::oneshot;
 
 pub async fn start_server(
     event_storage: Arc<EventStorage>,
+    mut shutdown_rx: oneshot::Receiver<()>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = SocketAddr::from(([127, 0, 0, 1], 23517));
     let listener = TcpListener::bind(addr).await?;
@@ -25,23 +27,42 @@ pub async fn start_server(
     event_storage.info("Server", &format!("Started and listening on {addr}"));
 
     loop {
-        let (stream, _) = listener.accept().await?;
-        let io = TokioIo::new(stream);
-        let storage_clone = Arc::clone(&event_storage);
-        let error_storage = Arc::clone(&event_storage);
-
-        tokio::task::spawn(async move {
-            let service = service_fn(move |req| {
-                let req_storage = Arc::clone(&storage_clone);
-                async move { handle_request(req, req_storage).await }
-            });
-
-            if let Err(err) = http1::Builder::new().serve_connection(io, service).await {
-                let error_msg = format!("Error serving connection: {err:?}");
-                error_storage.error("Server", &error_msg);
+        tokio::select! {
+            // Check for shutdown signal
+            _ = &mut shutdown_rx => {
+                event_storage.info("Server", "Shutting down HTTP server");
+                break;
             }
-        });
+            // Accept new connections
+            result = listener.accept() => {
+                match result {
+                    Ok((stream, _)) => {
+                        let io = TokioIo::new(stream);
+                        let storage_clone = Arc::clone(&event_storage);
+                        let error_storage = Arc::clone(&event_storage);
+
+                        tokio::task::spawn(async move {
+                            let service = service_fn(move |req| {
+                                let req_storage = Arc::clone(&storage_clone);
+                                async move { handle_request(req, req_storage).await }
+                            });
+
+                            if let Err(err) = http1::Builder::new().serve_connection(io, service).await {
+                                let error_msg = format!("Error serving connection: {err:?}");
+                                error_storage.error("Server", &error_msg);
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        event_storage.error("Server", &format!("Accept error: {e}"));
+                        break;
+                    }
+                }
+            }
+        }
     }
+    
+    Ok(())
 }
 
 async fn handle_request(

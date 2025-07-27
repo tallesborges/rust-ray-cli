@@ -8,15 +8,15 @@ use gpui::{
     actions, div, px, size, App, Application, Bounds, ClipboardItem, IntoElement, Render,
     TitlebarOptions, UniformListScrollHandle, Window, WindowBounds, WindowOptions,
 };
-use std::sync::Arc;
-use std::collections::HashSet;
 use std::cell::RefCell;
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
+use std::sync::Arc;
 
 actions!(app, [Quit]);
-
 
 pub struct MyApp {
     payload_storage: Arc<EventStorage>,
@@ -33,7 +33,7 @@ impl MyApp {
     pub fn new(payload_storage: Arc<EventStorage>) -> Self {
         // Enable all event types by default - much simpler with enum
         let event_type_filters = EventType::all().into_iter().collect::<HashSet<_>>();
-        
+
         Self {
             payload_storage,
             selected_row: Some(0),
@@ -74,7 +74,6 @@ impl MyApp {
         cx.notify();
     }
 
-
     pub fn is_row_selected(&self, index: usize) -> bool {
         self.selected_row == Some(index)
     }
@@ -82,14 +81,14 @@ impl MyApp {
     // Highly optimized cached filtering with minimal allocations
     pub fn get_filtered_events(&self) -> Arc<Vec<crate::events::EventEntry>> {
         let filter_hash = self.calculate_filter_hash();
-        
+
         if let Some(cached) = self.filter_cache.borrow().get(&filter_hash) {
             return cached.clone();
         }
-        
-        // Cache miss - compute filtered events  
+
+        // Cache miss - compute filtered events
         let all_events = self.payload_storage.get_events_optimized();
-        
+
         // Use iterator adaptors for better performance
         let filtered: Vec<crate::events::EventEntry> = all_events
             .iter()
@@ -101,37 +100,38 @@ impl MyApp {
                     false // Filter out unknown event types
                 }
             })
-            .map(|arc_event| (**arc_event).clone())  // Dereference Arc then clone
+            .map(|arc_event| (**arc_event).clone()) // Dereference Arc then clone
             .collect();
-        
+
         let filtered_arc = Arc::new(filtered);
-        
+
         // Update cache
-        self.filter_cache.borrow_mut().insert(filter_hash, filtered_arc.clone());
-        
+        self.filter_cache
+            .borrow_mut()
+            .insert(filter_hash, filtered_arc.clone());
+
         filtered_arc
     }
 
     fn calculate_filter_hash(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
-        
+
         // Hash the event type filters
         let mut filters: Vec<_> = self.event_type_filters.iter().collect();
         filters.sort();
         filters.hash(&mut hasher);
-        
+
         // Hash the storage generation to invalidate cache when events change
         self.payload_storage.get_generation().hash(&mut hasher);
-        
+
         hasher.finish()
     }
-    
+
     // Invalidate cache when events change
     fn invalidate_cache(&self) {
         *self.cache_generation.borrow_mut() += 1;
         self.filter_cache.borrow_mut().clear();
     }
-    
 }
 
 impl Render for MyApp {
@@ -159,7 +159,7 @@ impl Render for MyApp {
             .bg(background_color())
             .size_full()
             .child(render_event_list_panel(
-                events.as_ref(),  // Pass slice instead of owned vector
+                events.as_ref(), // Pass slice instead of owned vector
                 &self.event_type_filters,
                 self.selected_row,
                 &self.scroll_handle,
@@ -172,8 +172,14 @@ impl Render for MyApp {
     }
 }
 
-pub fn run_app(payload_storage: Arc<EventStorage>) -> Result<(), Box<dyn std::error::Error>> {
-    Application::new().run(|cx: &mut App| {
+pub fn run_app(
+    payload_storage: Arc<EventStorage>,
+    shutdown_tx: tokio::sync::oneshot::Sender<()>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Wrap shutdown_tx in a Rc<RefCell> to allow it to be shared across closures
+    let shutdown_tx = Rc::new(RefCell::new(Some(shutdown_tx)));
+
+    Application::new().run(move |cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
         cx.open_window(
             WindowOptions {
@@ -184,7 +190,26 @@ pub fn run_app(payload_storage: Arc<EventStorage>) -> Result<(), Box<dyn std::er
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..Default::default()
             },
-            |_window, cx| cx.new(|_cx| MyApp::new(payload_storage)),
+            |window, cx| {
+                // Handle window close event
+                let close_storage = payload_storage.clone();
+                let close_tx = Rc::clone(&shutdown_tx);
+                window.on_window_should_close(cx, move |_window, _cx| {
+                    close_storage.info("App", "Window close requested");
+
+                    // Send shutdown signal to server
+                    if let Some(tx) = close_tx.borrow_mut().take() {
+                        close_storage.info("App", "Sending shutdown signal to server");
+                        let _ = tx.send(());
+                    }
+
+                    // Force exit immediately
+                    close_storage.info("App", "Force exiting application");
+                    std::process::exit(0);
+                });
+
+                cx.new(|_cx| MyApp::new(payload_storage))
+            },
         )
         .unwrap();
 
