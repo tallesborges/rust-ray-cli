@@ -70,7 +70,7 @@ Configure Ray to send events to `localhost:23517`:
 ```
 src/
 ├── main.rs           # Application entry point
-├── app.rs            # GUI application logic  
+├── app.rs            # GUI application logic
 ├── server.rs         # HTTP server implementation
 ├── event_storage.rs  # Event storage and management
 ├── events/           # Event processing modules
