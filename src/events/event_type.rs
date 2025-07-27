@@ -10,7 +10,7 @@ pub enum EventType {
     Query,
     Exception,
     ApplicationLog,
-    Table,
+    // Table removed - was an anti-pattern dispatcher, not a real event type
 }
 
 impl EventType {
@@ -23,7 +23,7 @@ impl EventType {
             EventType::Query,
             EventType::Exception,
             EventType::ApplicationLog,
-            EventType::Table,
+            // Table removed - was an anti-pattern dispatcher
         ]
     }
 
@@ -36,7 +36,7 @@ impl EventType {
             EventType::Query => "query",
             EventType::Exception => "exception",
             EventType::ApplicationLog => "application_log",
-            EventType::Table => "table",
+            // Table removed - was an anti-pattern dispatcher
         }
     }
 
@@ -49,7 +49,7 @@ impl EventType {
             EventType::Query => "Query",
             EventType::Exception => "Exception",
             EventType::ApplicationLog => "Application Log",
-            EventType::Table => "Table",
+            // Table removed - was an anti-pattern dispatcher
         }
     }
 }
@@ -71,7 +71,7 @@ impl FromStr for EventType {
             "query" | "executed_query" => Ok(EventType::Query), // Support both query variants
             "exception" => Ok(EventType::Exception),
             "application_log" => Ok(EventType::ApplicationLog),
-            "table" => Ok(EventType::Table),
+            // "table" removed - was an anti-pattern dispatcher, not a real event type
             _ => Err(format!("Unknown event type: {}", s)),
         }
     }
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn test_all_event_types() {
         let all_types = EventType::all();
-        assert_eq!(all_types.len(), 7);
+        assert_eq!(all_types.len(), 6); // Updated from 7 to 6 after removing Table anti-pattern
         assert!(all_types.contains(&EventType::Cache));
         assert!(all_types.contains(&EventType::Http));
     }

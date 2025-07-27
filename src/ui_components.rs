@@ -24,10 +24,6 @@ pub fn hover_color() -> gpui::Hsla {
     rgb(0x18181b).into() // zinc-900 - subtle hover
 }
 
-pub fn styled_card() -> Div {
-    // No cards in minimal design, just spacing
-    div().py_4()
-}
 
 pub fn copy_button() -> Div {
     div()

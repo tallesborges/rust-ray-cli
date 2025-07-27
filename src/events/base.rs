@@ -19,10 +19,10 @@ pub enum EventProcessor {
     Log,
     Exception,
     Query,
-    Table,
     ApplicationLog,
     Cache,
     Http,
+    // Table removed - was an anti-pattern dispatcher
 }
 
 impl EventProcessor {
@@ -32,10 +32,10 @@ impl EventProcessor {
             Self::Log => crate::events::log::process(payload),
             Self::Exception => crate::events::exception::process(payload),
             Self::Query => crate::events::query::process(payload),
-            Self::Table => crate::events::table::process(payload),
             Self::ApplicationLog => crate::events::application_log::process(payload),
             Self::Cache => crate::events::cache::process(payload),
             Self::Http => crate::events::http::process(payload),
+            // Table removed - was an anti-pattern dispatcher
         }
     }
 }

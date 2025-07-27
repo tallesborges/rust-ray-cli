@@ -3,7 +3,6 @@
 
 use std::process::Command;
 use std::time::{Duration, Instant};
-use std::thread;
 
 #[test]
 fn test_release_build_performance() {
@@ -23,7 +22,7 @@ fn test_release_build_performance() {
     
     // Test binary execution time
     let start = Instant::now();
-    let output = Command::new("./target/release/rust-ray-cli")
+    let _output = Command::new("./target/release/rust-ray-cli")
         .args(&["--help"])
         .output()
         .expect("Failed to execute binary");

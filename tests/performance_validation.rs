@@ -1,10 +1,9 @@
 use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use std::collections::HashSet;
 
 // Import from the crate we're testing
-use rust_ray_cli::events::EventEntry;
+use rust_ray_cli::events::process_event;
 use rust_ray_cli::event_storage::EventStorage;
 
 fn create_sample_event(index: usize) -> Value {
@@ -88,8 +87,7 @@ fn test_fps_performance_with_large_payloads() {
                 create_large_cache_event(i)
             };
             
-            let event = rust_ray_cli::events::table::process(&payload).unwrap();
-            storage.add_event(event);
+            storage.add_event(&payload);
         }
         
         let insert_time = start_time.elapsed();
@@ -97,7 +95,7 @@ fn test_fps_performance_with_large_payloads() {
         
         // Test filtering performance (the main FPS bottleneck)
         let filter_start = Instant::now();
-        let events = storage.get_filtered_events_cached(&HashSet::new(), "");
+        let events = storage.get_events_optimized();
         let filter_time = filter_start.elapsed();
         println!("  🔍 Filtering time: {:?}", filter_time);
         
@@ -167,8 +165,7 @@ fn test_memory_efficiency_optimizations() {
     // Add many events
     for i in 0..5000 {
         let payload = create_sample_event(i);
-        let event = rust_ray_cli::events::table::process(&payload).unwrap();
-        storage.add_event(event);
+        storage.add_event(&payload);
     }
     
     let after_insert_memory = get_memory_usage_estimate();
@@ -176,9 +173,9 @@ fn test_memory_efficiency_optimizations() {
     
     // Test Arc-based filtering (should not clone all events)
     let filter_start = Instant::now();
-    let _events1 = storage.get_filtered_events_cached(&HashSet::new(), "");
-    let _events2 = storage.get_filtered_events_cached(&HashSet::new(), "");
-    let _events3 = storage.get_filtered_events_cached(&HashSet::new(), "");
+    let _events1 = storage.get_events_optimized();
+    let _events2 = storage.get_events_optimized();
+    let _events3 = storage.get_events_optimized();
     let filter_time = filter_start.elapsed();
     
     println!("🔄 Multiple filtering operations time: {:?}", filter_time);
@@ -214,6 +211,7 @@ fn test_json_processing_optimization() {
     
     // Test the optimized JSON processing with size limits
     let json_str = serde_json::to_string_pretty(&large_json).unwrap();
+    let json_len = json_str.len(); // Store length before move
     let result = if json_str.len() > 10000 {
         format!("{}... [truncated {} chars]", 
             &json_str[..1000], 
@@ -224,13 +222,13 @@ fn test_json_processing_optimization() {
     
     let processing_time = start_time.elapsed();
     
-    println!("📊 Original JSON size: {} chars", json_str.len());
+    println!("📊 Original JSON size: {} chars", json_len);
     println!("📦 Processed result size: {} chars", result.len());
     println!("⏱️  Processing time: {:?}", processing_time);
     
     // The optimization should truncate large JSON
-    if json_str.len() > 10000 {
-        assert!(result.len() < json_str.len(), "JSON should be truncated for large objects");
+    if json_len > 10000 {
+        assert!(result.len() < json_len, "JSON should be truncated for large objects");
         assert!(result.contains("truncated"), "Truncated JSON should indicate truncation");
         println!("✅ PASS: Large JSON truncation working");
     }
@@ -258,7 +256,7 @@ fn test_event_processing_performance() {
         let mut processed_count = 0;
         
         for event in &events {
-            if let Ok(_) = rust_ray_cli::events::table::process(event) {
+            if let Ok(_) = process_event("request", event) {
                 processed_count += 1;
             }
         }
@@ -278,7 +276,6 @@ fn test_event_processing_performance() {
 // Simple memory usage estimator (rough approximation)
 fn get_memory_usage_estimate() -> usize {
     // This is a rough estimate - in a real benchmark we'd use more sophisticated memory tracking
-    use std::alloc::{GlobalAlloc, Layout, System};
     
     // For testing purposes, we'll just return a timestamp-based estimate
     // In production, you'd want proper memory profiling
@@ -325,8 +322,7 @@ fn test_before_after_performance_comparison() {
                 create_sample_event(i) // HTTP events with large response bodies
             };
             
-            let event = rust_ray_cli::events::table::process(&payload).unwrap();
-            storage.add_event(event);
+            storage.add_event(&payload);
         }
         let insert_time = insert_start.elapsed();
         
@@ -334,7 +330,7 @@ fn test_before_after_performance_comparison() {
         let critical_path_start = Instant::now();
         
         // 1. Filtering (was causing performance issues due to cloning)
-        let events = storage.get_filtered_events_cached(&HashSet::new(), "");
+        let events = storage.get_events_optimized();
         
         // 2. Simulate viewport rendering (20 visible items with optimizations)
         let viewport_size = 20;

@@ -6,11 +6,11 @@ use std::collections::HashMap;
 pub enum ProcessedEvent {
     Cache(CacheEvent),
     Http(HttpEvent),
-    Table(TableEvent),
     Log(LogEvent),
     Query(QueryEvent),
     Exception(ExceptionEvent),
     ApplicationLog(ApplicationLogEvent),
+    // Table(TableEvent) removed - was part of anti-pattern dispatcher
 }
 
 #[derive(Clone, Debug)]
@@ -48,12 +48,7 @@ pub enum HttpEventType {
     Response,
 }
 
-#[derive(Clone, Debug)]
-#[allow(dead_code)]
-pub struct TableEvent {
-    pub label: String,
-    pub data: HashMap<String, Value>,
-}
+// TableEvent removed - was part of anti-pattern dispatcher
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]

@@ -46,10 +46,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     run_app(event_storage)
 }
 
+
 #[cfg(test)]
 mod tests {
     use crate::events::process_event;
     use serde_json::json;
+
+    #[test]
+    fn test_table_http_detection() {
+        let table_event = json!({
+            "type": "table",
+            "content": {
+                "label": "Http",
+                "values": {
+                    "Method": "GET", 
+                    "URL": "https://api.example.com/test"
+                }
+            }
+        });
+
+        let result = process_event("table", &table_event).unwrap();
+        assert_eq!(result.event_type, "request");
+        assert!(result.label.contains("HTTP"));
+    }
+
+    #[test]
+    fn test_table_cache_detection() {
+        let table_event = json!({
+            "type": "table", 
+            "content": {
+                "label": "Cache",
+                "values": {
+                    "Event": "Hit",
+                    "Key": "test:key"
+                }
+            }
+        });
+
+        let result = process_event("table", &table_event).unwrap();
+        assert_eq!(result.event_type, "cache");
+        assert!(result.label.contains("Cache"));
+    }
 
     #[test]
     fn test_process_application_log() {

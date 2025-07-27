@@ -106,40 +106,40 @@ fn benchmark_event_processing(c: &mut Criterion) {
     
     // Test different payload sizes
     for size in [10, 100, 500, 1000, 2000].iter() {
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("http_events", size),
             size,
             |b, &size| {
                 let events: Vec<Value> = (0..size).map(create_sample_event).collect();
                 b.iter(|| {
                     for event in &events {
-                        let _ = black_box(rust_ray_cli::events::table::process(event));
+                        let _ = black_box(rust_ray_cli::events::process_event("http", event));
                     }
                 });
             },
         );
 
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("cache_events", size),
             size,
             |b, &size| {
                 let events: Vec<Value> = (0..size).map(create_large_cache_event).collect();
                 b.iter(|| {
                     for event in &events {
-                        let _ = black_box(rust_ray_cli::events::table::process(event));
+                        let _ = black_box(rust_ray_cli::events::process_event("http", event));
                     }
                 });
             },
         );
 
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("complex_table_events", size),
             size,
             |b, &size| {
                 let events: Vec<Value> = (0..size).map(create_complex_table_event).collect();
                 b.iter(|| {
                     for event in &events {
-                        let _ = black_box(rust_ray_cli::events::table::process(event));
+                        let _ = black_box(rust_ray_cli::events::process_event("http", event));
                     }
                 });
             },
@@ -153,7 +153,7 @@ fn benchmark_event_storage(c: &mut Criterion) {
     let mut group = c.benchmark_group("event_storage");
     
     for size in [100, 500, 1000, 2000, 5000].iter() {
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("storage_operations", size),
             size,
             |b, &size| {
@@ -162,7 +162,7 @@ fn benchmark_event_storage(c: &mut Criterion) {
                     let events: Vec<EventEntry> = (0..size)
                         .map(|i| {
                             let payload = create_sample_event(i);
-                            rust_ray_cli::events::table::process(&payload).unwrap()
+                            rust_ray_cli::events::process_event("http", &payload).unwrap()
                         })
                         .collect();
                     
@@ -186,7 +186,7 @@ fn benchmark_json_processing(c: &mut Criterion) {
     
     // Test JSON serialization performance with size limits
     for size in [1000, 5000, 10000, 50000, 100000].iter() {
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("json_serialization_with_limits", size),
             size,
             |b, &size| {
@@ -227,7 +227,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
         // Add many events
         for i in 0..5000 {
             let payload = create_sample_event(i);
-            let event = rust_ray_cli::events::table::process(&payload).unwrap();
+            let event = rust_ray_cli::events::process_event("http", &payload).unwrap();
             storage.add_event(event);
         }
         
@@ -249,14 +249,14 @@ fn benchmark_ui_virtualization(c: &mut Criterion) {
     
     // Simulate rendering performance with large datasets
     for event_count in [100, 500, 1000, 2000, 5000].iter() {
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("virtual_rendering_simulation", event_count),
             event_count,
             |b, &event_count| {
                 let events: Vec<EventEntry> = (0..event_count)
                     .map(|i| {
                         let payload = create_sample_event(i);
-                        rust_ray_cli::events::table::process(&payload).unwrap()
+                        rust_ray_cli::events::process_event("http", &payload).unwrap()
                     })
                     .collect();
                 
@@ -302,7 +302,7 @@ fn benchmark_fps_simulation(c: &mut Criterion) {
     let target_frame_time = Duration::from_millis(16);
     
     for event_count in [100, 500, 1000, 2000, 5000, 10000].iter() {
-        group.benchmark_with_input(
+        group.bench_with_input(
             BenchmarkId::new("frame_processing", event_count),
             event_count,
             |b, &event_count| {
@@ -311,7 +311,7 @@ fn benchmark_fps_simulation(c: &mut Criterion) {
                 // Pre-populate with events
                 for i in 0..event_count {
                     let payload = create_sample_event(i);
-                    let event = rust_ray_cli::events::table::process(&payload).unwrap();
+                    let event = rust_ray_cli::events::process_event("http", &payload).unwrap();
                     storage.add_event(event);
                 }
                 
