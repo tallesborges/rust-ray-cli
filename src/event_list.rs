@@ -8,7 +8,7 @@ use gpui::{div, uniform_list, Context, Div, FontWeight, IntoElement, UniformList
 use std::collections::HashSet;
 
 pub fn render_event_list_panel(
-    events: &[EventEntry],  // Use slice instead of Vec reference for better performance
+    events: &[EventEntry], // Use slice instead of Vec reference for better performance
     event_type_filters: &HashSet<EventType>,
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
@@ -63,7 +63,7 @@ fn render_header_with_filters(
                         .hover(|style| style.text_color(text_primary_color()))
                         .on_mouse_down(
                             gpui::MouseButton::Left,
-                            cx.listener(|this, _event, _window, cx| {
+                            cx.listener(|this, _event, _, cx| {
                                 this.clear_events(cx);
                             }),
                         )
@@ -82,7 +82,11 @@ fn render_header_with_filters(
                         .text_color(text_secondary_color())
                         .child("Filter by type:"),
                 )
-                .child(render_filter_checkboxes(event_types, event_type_filters, cx)),
+                .child(render_filter_checkboxes(
+                    event_types,
+                    event_type_filters,
+                    cx,
+                )),
         )
 }
 
@@ -91,60 +95,52 @@ fn render_filter_checkboxes(
     event_type_filters: &HashSet<EventType>,
     cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
-    div()
-        .flex()
-        .flex_col()
-        .gap_1()
-        .children(
-            event_types
-                .into_iter()
-                .map(|event_type| {
-                    let is_enabled = event_type_filters.contains(&event_type);
-                    let checkbox_style = if is_enabled {
-                        text_primary_color()
-                    } else {
-                        text_secondary_color()
-                    };
+    div().flex().flex_col().gap_1().children(
+        event_types
+            .into_iter()
+            .map(|event_type| {
+                let is_enabled = event_type_filters.contains(&event_type);
+                let checkbox_style = if is_enabled {
+                    text_primary_color()
+                } else {
+                    text_secondary_color()
+                };
 
-                    div()
-                        .flex()
-                        .flex_row()
-                        .items_center()
-                        .gap_2()
-                        .cursor_pointer()
-                        .hover(|style| style.text_color(text_primary_color()))
-                        .on_mouse_down(
-                            gpui::MouseButton::Left,
-                            {
-                                let event_type_copy = event_type; // EventType is Copy, no need to clone
-                                cx.listener(move |this, _event, _window, cx| {
-                                    this.toggle_event_type_filter(event_type_copy, cx);
-                                })
-                            },
-                        )
-                        .child(
-                            div()
-                                .text_xs()
-                                .text_color(checkbox_style)
-                                .child(if is_enabled { "☑" } else { "☐" }),
-                        )
-                        .child(
-                            div()
-                                .text_xs()
-                                .text_color(checkbox_style)
-                                .child(event_type.display_name()), // Use pretty display name
-                        )
-                })
-                .collect::<Vec<_>>(),
-        )
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap_2()
+                    .cursor_pointer()
+                    .hover(|style| style.text_color(text_primary_color()))
+                    .on_mouse_down(
+                        gpui::MouseButton::Left,
+                        cx.listener(move |this, _event, _, cx| {
+                            this.toggle_event_type_filter(event_type, cx);
+                        }),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(checkbox_style)
+                            .child(if is_enabled { "☑" } else { "☐" }),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(checkbox_style)
+                            .child(event_type.display_name()), // Use pretty display name
+                    )
+            })
+            .collect::<Vec<_>>(),
+    )
 }
 
-
 fn render_event_list(
-    events: &[EventEntry],  // Use slice to avoid cloning
+    events: &[EventEntry], // Use slice to avoid cloning
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
-    cx: &mut Context<crate::app::MyApp>,
+    _cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
     div()
         .flex_1()
@@ -153,7 +149,7 @@ fn render_event_list(
         .child(if events.is_empty() {
             render_empty_state().into_any_element()
         } else {
-            render_event_uniform_list(events, selected_row, scroll_handle, cx).into_any_element()
+            render_event_uniform_list(events, selected_row, scroll_handle, _cx).into_any_element()
         })
 }
 
@@ -168,19 +164,19 @@ fn render_empty_state() -> Div {
 }
 
 fn render_event_uniform_list(
-    events: &[EventEntry],  // Use slice to avoid cloning
+    events: &[EventEntry], // Use slice to avoid cloning
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
     cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
     // CRITICAL OPTIMIZATION: Use Arc to avoid cloning entire events vector
     let events_arc = std::sync::Arc::new(events.to_vec());
-    
+
     div().size_full().child(
-        uniform_list(cx.entity().clone(), "event_list", events.len(), {
+        uniform_list("event_list", events.len(), {
             // Use Arc to share data without cloning
             let events_ref = events_arc.clone();
-            move |_this, range, _window, cx| {
+            move |range, _window, cx| {
                 range
                     .map(|index| {
                         // PERFORMANCE: Direct access without additional cloning
@@ -194,7 +190,7 @@ fn render_event_uniform_list(
 
                         // VIEWPORT OPTIMIZATION: Calculate virtual scrolling height
                         let item_height = 64; // 16 * 4px = 64px per item
-                        
+
                         div()
                             .id(("event", index))
                             .flex()
@@ -208,17 +204,11 @@ fn render_event_uniform_list(
                                 div.hover(|style| style.bg(hover_color()))
                             })
                             .cursor_pointer()
-                            .on_mouse_down(
-                                gpui::MouseButton::Left,
-                                cx.listener(move |this, _event, _window, cx| {
-                                    // Prevent multiple rapid selections and event bubbling
-                                    cx.stop_propagation();
-                                    // Only select if not already selected to prevent unnecessary re-renders
-                                    if !this.is_row_selected(index) {
-                                        this.select_row(index, cx);
-                                    }
-                                }),
-                            )
+                            .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _cx| {
+                                // Note: In uniform_list, we can't directly access the view state
+                                // This needs to be handled through a shared state or action system
+                                // For now, we'll need to implement a different approach
+                            })
                             .child(
                                 div()
                                     .flex()
@@ -253,7 +243,7 @@ fn render_event_label_optimized(label: &str) -> Div {
     } else {
         label.to_string()
     };
-    
+
     div()
         .text_sm()
         .text_color(text_primary_color())
@@ -267,11 +257,10 @@ fn render_event_description_optimized(description: &str) -> Div {
     } else {
         description.to_string()
     };
-    
+
     div()
         .text_xs()
         .text_color(text_secondary_color())
         .opacity(0.7)
         .child(display_desc)
 }
-
