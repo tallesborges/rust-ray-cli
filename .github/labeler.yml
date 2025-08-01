@@ -1,0 +1,11 @@
+rust:
+  - changed-files:
+    - any-glob-to-any-file: ['**/*.rs', 'Cargo.toml', 'Cargo.lock']
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: ['**/*.md', 'docs/**']
+
+github-actions:
+  - changed-files:
+    - any-glob-to-any-file: ['.github/**']
