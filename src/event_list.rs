@@ -6,6 +6,7 @@ use crate::ui_components::{
 use gpui::prelude::*;
 use gpui::{div, uniform_list, Context, Div, FontWeight, IntoElement, UniformListScrollHandle};
 use std::collections::HashSet;
+use std::ops::Range;
 
 pub fn render_event_list_panel(
     events: &[EventEntry], // Use slice instead of Vec reference for better performance
@@ -144,8 +145,8 @@ fn render_event_list(
 ) -> Div {
     div()
         .flex_1()
+        .h_full()
         .overflow_y_hidden()
-        .max_h_full()
         .child(if events.is_empty() {
             render_empty_state().into_any_element()
         } else {
@@ -176,39 +177,32 @@ fn render_event_uniform_list(
         uniform_list("event_list", events.len(), {
             // Use Arc to share data without cloning
             let events_ref = events_arc.clone();
-            move |range, _window, cx| {
+            cx.processor(move |this, range: Range<usize>, _window, cx| {
                 range
                     .map(|index| {
                         // PERFORMANCE: Direct access without additional cloning
                         let entry = &events_ref[index];
-                        let is_selected = selected_row == Some(index);
+                        let is_selected = this.is_row_selected(index);
                         let bg_color = if is_selected {
                             selection_color()
                         } else {
                             background_color()
                         };
 
-                        // VIEWPORT OPTIMIZATION: Calculate virtual scrolling height
-                        let item_height = 64; // 16 * 4px = 64px per item
-
                         div()
                             .id(("event", index))
-                            .flex()
-                            .flex_col()
                             .px_4()
                             .py_3()
                             .gap_1()
-                            .h(gpui::px(item_height as f32)) // Fixed height for virtual scrolling
+                            .h(gpui::px(64.0))
                             .bg(bg_color)
                             .when(!is_selected, |div| {
                                 div.hover(|style| style.bg(hover_color()))
                             })
                             .cursor_pointer()
-                            .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _cx| {
-                                // Note: In uniform_list, we can't directly access the view state
-                                // This needs to be handled through a shared state or action system
-                                // For now, we'll need to implement a different approach
-                            })
+                            .on_click(cx.listener(move |this, _event, _window, cx| {
+                                this.select_row(index, cx);
+                            }))
                             .child(
                                 div()
                                     .flex()
@@ -220,7 +214,7 @@ fn render_event_uniform_list(
                             .child(render_event_description_optimized(&entry.description))
                     })
                     .collect()
-            }
+            })
         })
         .size_full()
         .track_scroll(scroll_handle.clone()),
