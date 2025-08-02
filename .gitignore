@@ -4,6 +4,12 @@
 .DS_Store
 .idea
 
+# macOS app bundles and build artifacts
+*.app
+*.dmg
+launch-rustray.command
+create-app-bundle.sh
+
 # Claude Flow generated files
 .claude/agents/
 .claude/settings.local.json

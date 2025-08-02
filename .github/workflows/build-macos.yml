@@ -1,0 +1,99 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@nightly
+      
+    - name: Cache cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Build
+      run: cargo build --release
+      
+    - name: Run tests
+      run: cargo test
+      
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+      
+    - name: Create App Bundle
+      run: |
+        APP_NAME="RustRay"
+        BUNDLE_DIR="$APP_NAME.app"
+        
+        rm -rf "$BUNDLE_DIR"
+        mkdir -p "$BUNDLE_DIR/Contents/MacOS"
+        mkdir -p "$BUNDLE_DIR/Contents/Resources"
+        
+        cp target/release/rust-ray-cli "$BUNDLE_DIR/Contents/MacOS/$APP_NAME"
+        
+        cat > "$BUNDLE_DIR/Contents/Info.plist" << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>$APP_NAME</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.tallesborges.rustray</string>
+            <key>CFBundleName</key>
+            <string>$APP_NAME</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${GITHUB_REF_NAME#v}</string>
+            <key>CFBundleVersion</key>
+            <string>$GITHUB_RUN_NUMBER</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>10.15</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+        
+        # Create DMG
+        hdiutil create -volname "$APP_NAME" -srcfolder "$BUNDLE_DIR" -ov -format UDZO "$APP_NAME.dmg"
+        
+    - name: Upload App Bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: RustRay-macOS
+        path: |
+          RustRay.app
+          RustRay.dmg
+          
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          RustRay.dmg
+        draft: false
+        prerelease: false
