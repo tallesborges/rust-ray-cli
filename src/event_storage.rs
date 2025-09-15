@@ -97,7 +97,7 @@ impl EventStorage {
 
                 let mut events = self.events.lock().unwrap();
                 events.push(Arc::new(entry));
-                
+
                 // Increment generation for cache invalidation
                 let mut generation = self.generation.lock().unwrap();
                 *generation += 1;
@@ -111,17 +111,13 @@ impl EventStorage {
         }
     }
 
-    
     // Optimized version that returns references to avoid cloning
     pub fn get_events_optimized(&self) -> Vec<Arc<EventEntry>> {
         let events = self.events.lock().unwrap();
         // Reverse iterator without collecting - more memory efficient
         events.iter().rev().cloned().collect()
     }
-    
-    
-    
-    
+
     pub fn get_generation(&self) -> u64 {
         *self.generation.lock().unwrap()
     }
@@ -129,7 +125,7 @@ impl EventStorage {
     pub fn clear_events(&self) {
         let mut events = self.events.lock().unwrap();
         events.clear();
-        
+
         // Increment generation for cache invalidation
         let mut generation = self.generation.lock().unwrap();
         *generation += 1;

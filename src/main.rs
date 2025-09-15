@@ -48,13 +48,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     event_storage.info("Main", "Starting GUI event loop");
 
     let result = run_app(event_storage, shutdown_tx);
-    
+
     // Wait for server to shutdown gracefully
     let _ = server_handle.await;
-    
+
     result
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -68,7 +67,7 @@ mod tests {
             "content": {
                 "label": "Http",
                 "values": {
-                    "Method": "GET", 
+                    "Method": "GET",
                     "URL": "https://api.example.com/test"
                 }
             }
@@ -82,7 +81,7 @@ mod tests {
     #[test]
     fn test_table_cache_detection() {
         let table_event = json!({
-            "type": "table", 
+            "type": "table",
             "content": {
                 "label": "Cache",
                 "values": {
