@@ -1,14 +1,11 @@
 // main.rs
-mod app;
-mod event_details;
-mod event_list;
-mod event_storage;
 mod events;
 mod server;
-mod ui_components;
+mod storage;
+mod ui;
 
-use app::run_app;
-use event_storage::EventStorage;
+use storage::EventStorage;
+use ui::app::run_app;
 use server::start_server;
 use std::sync::Arc;
 use tokio::sync::oneshot;

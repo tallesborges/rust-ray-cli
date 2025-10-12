@@ -1,5 +1,5 @@
 use crate::events::{render_event, EventEntry};
-use crate::ui_components::{copy_button, text_primary_color, text_secondary_color};
+use crate::ui::components::{border_color, copy_button, text_primary_color, text_secondary_color};
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
 
@@ -10,7 +10,7 @@ pub struct EventDetailsProps<'a> {
 
 pub fn render_event_details_panel(
     props: EventDetailsProps,
-    cx: &mut Context<crate::app::MyApp>,
+    cx: &mut Context<crate::ui::MyApp>,
 ) -> Div {
     div()
         .flex_1()
@@ -24,7 +24,7 @@ pub fn render_event_details_panel(
         })
 }
 
-fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
+fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
     div()
         .flex()
         .flex_col()
@@ -34,14 +34,14 @@ fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
         .child(render_event_content(entry, cx))
 }
 
-fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
+fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
     div()
         .flex()
         .flex_col()
         .gap_3()
         .pb_6()
         .border_b_1()
-        .border_color(crate::ui_components::border_color())
+        .border_color(border_color())
         .child(
             div()
                 .text_lg()
@@ -58,7 +58,7 @@ fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) 
         )
 }
 
-fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::app::MyApp>) -> Div {
+fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::ui::MyApp>) -> Div {
     let value_clone = value.to_string();
     div()
         .flex()
@@ -85,7 +85,7 @@ fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::app::M
         ))
 }
 
-fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
+fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
     div()
         .flex()
         .flex_1()

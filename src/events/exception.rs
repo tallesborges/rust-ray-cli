@@ -1,5 +1,5 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
+use crate::ui::components::{border_color, text_primary_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
@@ -39,7 +39,7 @@ impl Event for ExceptionEvent {
         ))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
         let content = entry
             .raw_payload
             .get("content")

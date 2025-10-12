@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 // Import from the crate we're testing
 use rust_ray_cli::events::process_event;
-use rust_ray_cli::event_storage::EventStorage;
+use rust_ray_cli::storage::EventStorage;
 
 fn create_sample_event(index: usize) -> Value {
     json!({

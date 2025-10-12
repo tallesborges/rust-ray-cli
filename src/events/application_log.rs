@@ -1,5 +1,5 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui_components::{
+use crate::ui::components::{
     border_color, text_monospace_color, text_primary_color, text_secondary_color,
 };
 use anyhow::Result;
@@ -35,7 +35,7 @@ impl Event for ApplicationLogEvent {
         ))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
         let content = entry
             .raw_payload
             .get("content")

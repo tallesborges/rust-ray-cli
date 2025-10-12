@@ -1,5 +1,5 @@
 use crate::events::{EventEntry, EventType};
-use crate::ui_components::{
+use crate::ui::components::{
     background_color, border_color, hover_color, selection_color, text_primary_color,
     text_secondary_color,
 };
@@ -13,7 +13,7 @@ pub fn render_event_list_panel(
     event_type_filters: &HashSet<EventType>,
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
-    cx: &mut Context<crate::app::MyApp>,
+    cx: &mut Context<crate::ui::MyApp>,
 ) -> Div {
     div()
         .flex()
@@ -29,7 +29,7 @@ pub fn render_event_list_panel(
 
 fn render_header_with_filters(
     event_type_filters: &HashSet<EventType>,
-    cx: &mut Context<crate::app::MyApp>,
+    cx: &mut Context<crate::ui::MyApp>,
 ) -> Div {
     // Much simpler - just get all event types from the enum
     let event_types = EventType::all();
@@ -94,7 +94,7 @@ fn render_header_with_filters(
 fn render_filter_checkboxes(
     event_types: Vec<EventType>,
     event_type_filters: &HashSet<EventType>,
-    cx: &mut Context<crate::app::MyApp>,
+    cx: &mut Context<crate::ui::MyApp>,
 ) -> Div {
     div().flex().flex_col().gap_1().children(
         event_types
@@ -141,7 +141,7 @@ fn render_event_list(
     events: &[EventEntry], // Use slice to avoid cloning
     selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
-    _cx: &mut Context<crate::app::MyApp>,
+    _cx: &mut Context<crate::ui::MyApp>,
 ) -> Div {
     div()
         .flex_1()
@@ -168,7 +168,7 @@ fn render_event_uniform_list(
     events: &[EventEntry], // Use slice to avoid cloning
     _selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
-    cx: &mut Context<crate::app::MyApp>,
+    cx: &mut Context<crate::ui::MyApp>,
 ) -> Div {
     // CRITICAL OPTIMIZATION: Use Arc to avoid cloning entire events vector
     let events_arc = std::sync::Arc::new(events.to_vec());

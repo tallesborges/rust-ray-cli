@@ -1,5 +1,5 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui_components::{
+use crate::ui::components::{
     border_color, text_monospace_color, text_primary_color, text_secondary_color,
 };
 use anyhow::Result;
@@ -46,7 +46,7 @@ impl Event for LogEvent {
         Ok(EventEntry::new("log", "Log", clean_description, payload))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
         div()
             .flex()
             .flex_col()
