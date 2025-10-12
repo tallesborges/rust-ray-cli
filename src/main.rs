@@ -4,7 +4,6 @@ mod event_details;
 mod event_list;
 mod event_storage;
 mod events;
-mod performance;
 mod server;
 mod ui_components;
 
