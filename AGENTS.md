@@ -22,17 +22,27 @@ A native macOS debugging tool built with Rust and GPUI that receives and display
 │   ├── app.rs           → GPUI application with virtual scrolling
 │   ├── server.rs        → HTTP server on port 23517
 │   ├── event_storage.rs → Arc-based shared event storage
+│   ├── event_list.rs    → Event list UI panel
+│   ├── event_details.rs → Event details UI panel
+│   ├── ui_components.rs → Shared UI components
 │   └── events/
+│       ├── mod.rs            → Event trait + dispatch
+│       ├── entry.rs          → EventEntry struct
 │       ├── event_type.rs     → EventType enum
-│       ├── processors/       → Event type processors
-│       └── types.rs          → Event data structures
+│       ├── http.rs           → HTTP event (process + render)
+│       ├── cache.rs          → Cache event (process + render)
+│       ├── log.rs            → Log event (process + render)
+│       ├── query.rs          → Query event (process + render)
+│       ├── exception.rs      → Exception event (process + render)
+│       └── application_log.rs → App log event (process + render)
 ├── tests/               → Integration and validation tests
 ├── benches/            → Performance benchmarks
 └── target/             → Build artifacts (gitignored)
 ```
 
-- All event processing logic lives in `src/events/processors/`
-- GUI code is exclusively in `src/app.rs`
+- Each event type is self-contained in its own module
+- All event processing and rendering in `src/events/`
+- GUI code split across `app.rs`, `event_list.rs`, `event_details.rs`
 - Server code is exclusively in `src/server.rs`
 - Shared state management in `src/event_storage.rs`
 
@@ -60,35 +70,38 @@ A native macOS debugging tool built with Rust and GPUI that receives and display
 - **Shared State**: `Arc<EventStorage>` shared between server and GUI threads
 - **Message Passing**: Server processes events and stores them; GUI polls for updates
 - **Virtual Rendering**: Only visible events are rendered for performance
-- **Filter Caching**: Hash-based cache invalidation for filtered event lists
+- **Trait-Based Events**: Each event type implements the `Event` trait
 - **Zero-Copy**: Arc usage minimizes string/data cloning
+- **Simple Filtering**: Direct iteration over events (no complex caching)
 
 ## Adding New Event Types
 
 When adding a new event type:
 
-1. Add variant to `EventType` enum in `src/events/event_type.rs`
-2. Create processor module in `src/events/processors/` (e.g., `my_event.rs`)
-3. Add processor to match statement in `event_storage::process_event()`
-4. Update `EventType::all()` method to include new type
-5. Add corresponding data structure in `src/events/types.rs`
-6. Create unit tests in the processor module
-7. Add integration test if needed
+1. **Create event module** in `src/events/my_event.rs`
+   - Create a struct for your event type (e.g., `pub struct MyEvent;`)
+   - Implement the `Event` trait with two methods: `process()` and `render()`
+   - The `process()` method parses JSON and returns an `EventEntry`
+   - The `render()` method creates the UI for displaying the event
 
-Example processor structure:
-```rust
-use serde_json::Value;
-use crate::events::types::{EventEntry, EventType};
+2. **Register in** `src/events/mod.rs`
+   - Add `pub mod my_event;` at the top
+   - Add match arm in `process_event()` function
+   - Add match arm in `render_event()` function
 
-pub fn process(payload: &Value) -> Option<EventEntry> {
-    // Deserialize and validate
-    // Return EventEntry with appropriate type
-}
-```
+3. **Add to EventType enum** in `src/events/event_type.rs`
+   - Add variant to the enum
+   - Update `all()`, `as_str()`, `display_name()`, and `FromStr::from_str()` methods
+
+4. **Create unit tests** in the event module
+
+5. **Add integration test** if needed
+
+For reference, see existing event implementations like `http.rs`, `cache.rs`, or `log.rs`.
 
 ## Testing Strategy
 
-- **Unit tests**: Test event processors in `src/events/processors/`
+- **Unit tests**: Test event processing in each event module
 - **Integration tests**: Test server endpoints in `tests/`
 - **Performance benchmarks**: Run `cargo bench` to validate performance targets
 - **Manual validation**: Use test scripts as needed
@@ -132,8 +145,20 @@ When optimizing performance:
 4. Consider `Arc` usage for shared data
 5. Validate changes with performance tests
 6. Ensure virtual scrolling still works correctly
+7. **Avoid premature optimization** - keep code simple first
 
 Target metrics:
 - Event processing: < 1ms per event
 - UI frame time: < 16ms (60 FPS)
 - Memory per event: < 1KB average
+
+## Recent Architecture Changes (October 2024)
+
+The codebase was refactored for simplicity and maintainability:
+- ✅ **Trait-based events**: Each event type implements the `Event` trait
+- ✅ **Self-contained modules**: Processing and rendering in the same file
+- ✅ **Removed complexity**: Eliminated separate processors directory
+- ✅ **Simplified caching**: Removed premature filter optimizations
+- ✅ **Cleaner code**: Reduced by ~50% while maintaining functionality
+
+See `REFACTORING_SUMMARY.md` for detailed documentation of changes.

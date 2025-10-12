@@ -107,7 +107,7 @@ mod tests {
         let result = process_event("application_log", &test_event).unwrap();
         assert_eq!(result.label, "Application Log");
         assert_eq!(result.description, "Test application log message");
-        assert_eq!(result.content_type, "custom_ui");
+        assert_eq!(result.event_type, "application_log");
     }
 
     #[test]
@@ -122,6 +122,6 @@ mod tests {
         let result = process_event("log", &test_event).unwrap();
         assert_eq!(result.label, "Log");
         assert_eq!(result.description, "Test log message");
-        assert_eq!(result.content_type, "custom_ui");
+        assert_eq!(result.event_type, "log");
     }
 }

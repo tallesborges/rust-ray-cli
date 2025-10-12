@@ -1,93 +1,78 @@
-use crate::events::base::{extract_timestamp, EventEntry};
-use crate::events::processors::process_exception_event;
-use crate::events::types::ProcessedEvent;
+use crate::events::{entry::EventEntry, Event};
 use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
 use serde_json::Value;
 
-pub fn process(payload: &Value) -> Result<EventEntry> {
-    let mut entry = EventEntry {
-        timestamp: extract_timestamp(payload),
-        label: "Exception".to_string(),
-        description: String::new(),
-        content_type: "custom_ui".to_string(),
-        event_type: "exception".to_string(),
-        raw_payload: payload.clone(),
-    };
+pub struct ExceptionEvent;
 
-    if let Some(content) = payload.get("content") {
-        // Process using the new architecture
-        let processed_event = process_exception_event(content)?;
+impl Event for ExceptionEvent {
+    fn process(payload: &Value) -> Result<EventEntry> {
+        let content = payload
+            .get("content")
+            .ok_or_else(|| anyhow::anyhow!("Missing content in exception event"))?;
 
-        // Set labels and descriptions based on processed event
-        if let ProcessedEvent::Exception(ref exception_event) = processed_event {
-            entry.label = "Exception".to_string();
-            let description = if !exception_event.message.is_empty() {
-                format!("{}: {}", exception_event.class, exception_event.message)
-            } else {
-                exception_event.class.clone()
-            };
+        let class = content
+            .get("class")
+            .and_then(Value::as_str)
+            .unwrap_or("Exception");
+        let message = content.get("message").and_then(Value::as_str).unwrap_or("");
 
-            // Truncate long descriptions
-            if description.len() > 100 {
-                entry.description = format!("{}...", &description[..97]);
-            } else {
-                entry.description = description;
-            }
+        let description = if !message.is_empty() {
+            format!("{}: {}", class, message)
         } else {
-            return Err(anyhow::anyhow!(
-                "Unexpected event type from exception processor"
-            ));
-        }
+            class.to_string()
+        };
+
+        let truncated_description = if description.len() > 100 {
+            format!("{}...", &description[..97])
+        } else {
+            description
+        };
+
+        Ok(EventEntry::new(
+            "exception",
+            "Exception",
+            truncated_description,
+            payload,
+        ))
     }
 
-    Ok(entry)
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+        let content = entry
+            .raw_payload
+            .get("content")
+            .cloned()
+            .unwrap_or_default();
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_6()
+            .child(render_exception_details(&content))
+            .child(render_stack_trace(&content))
+            .child(render_origin_info(entry))
+    }
 }
-
-pub fn render_exception_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
-    let content = entry
-        .raw_payload
-        .get("content")
-        .cloned()
-        .unwrap_or_default();
-
-    div()
-        .flex()
-        .flex_col()
-        .gap_6()
-        .child(render_exception_details(&content))
-        .child(render_stack_trace(&content))
-        .child(render_origin_info(entry))
-}
-
-// Header removed for minimal design
 
 fn render_exception_details(content: &Value) -> Div {
     let class = content
         .get("class")
         .and_then(|c| c.as_str())
         .unwrap_or("Exception");
-    let message = content
-        .get("message")
-        .and_then(|m| m.as_str())
-        .unwrap_or("");
+    let message = content.get("message").and_then(|m| m.as_str()).unwrap_or("");
 
-    div()
-        .flex()
-        .flex_col()
-        .gap_2()
-        .child(
-            div()
-                .text_sm()
-                .text_color(text_primary_color())
-                .child(if !message.is_empty() {
-                    format!("{class}: {message}")
-                } else {
-                    class.to_string()
-                }),
-        )
+    div().flex().flex_col().gap_2().child(
+        div()
+            .text_sm()
+            .text_color(text_primary_color())
+            .child(if !message.is_empty() {
+                format!("{}: {}", class, message)
+            } else {
+                class.to_string()
+            }),
+    )
 }
 
 fn render_stack_trace(content: &Value) -> Div {
@@ -105,7 +90,7 @@ fn render_stack_trace(content: &Value) -> Div {
             )
             .child(render_frames(frames))
     } else {
-        div() // Empty div if no frames
+        div()
     }
 }
 
@@ -155,19 +140,17 @@ fn render_single_frame(index: usize, frame: &Value) -> Div {
                     div()
                         .text_sm()
                         .text_color(text_primary_color())
-                        .child(format!("{class}::{method}")),
+                        .child(format!("{}::{}", class, method)),
                 )
                 .child(
                     div()
                         .text_xs()
                         .text_color(text_secondary_color())
                         .opacity(0.7)
-                        .child(format!("{file}:{line}")),
+                        .child(format!("{}:{}", file, line)),
                 ),
         )
 }
-
-// Code snippets removed for minimal design
 
 fn render_origin_info(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {
@@ -182,7 +165,7 @@ fn render_origin_info(entry: &EventEntry) -> Div {
             .unwrap_or("");
 
         if !file.is_empty() {
-            div()
+            return div()
                 .pt_4()
                 .border_t_1()
                 .border_color(border_color())
@@ -192,11 +175,8 @@ fn render_origin_info(entry: &EventEntry) -> Div {
                         .text_color(text_secondary_color())
                         .opacity(0.7)
                         .child(format!("{file}:{line} • {hostname}")),
-                )
-        } else {
-            div() // Empty div if no origin info
+                );
         }
-    } else {
-        div() // Empty div if no origin
     }
+    div()
 }

@@ -91,7 +91,7 @@ impl EventStorage {
                     "EventStorage",
                     &format!(
                         "Event processed successfully: {} ({})",
-                        entry.label, entry.content_type
+                        entry.label, entry.event_type
                     ),
                 );
 
@@ -114,12 +114,7 @@ impl EventStorage {
     // Optimized version that returns references to avoid cloning
     pub fn get_events_optimized(&self) -> Vec<Arc<EventEntry>> {
         let events = self.events.lock().unwrap();
-        // Reverse iterator without collecting - more memory efficient
         events.iter().rev().cloned().collect()
-    }
-
-    pub fn get_generation(&self) -> u64 {
-        *self.generation.lock().unwrap()
     }
 
     pub fn clear_events(&self) {

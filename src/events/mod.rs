@@ -1,54 +1,70 @@
 use anyhow::Result;
 use serde_json::Value;
+use gpui::{Context, Div};
 
 pub mod application_log;
-pub mod base;
 pub mod cache;
+pub mod entry;
 pub mod event_type;
 pub mod exception;
 pub mod http;
 pub mod log;
-pub mod processors;
 pub mod query;
-// pub mod table; // Removed - was an anti-pattern dispatcher
-pub mod types;
 
-pub use base::{EventEntry, EventProcessor, EventUIRenderer};
+pub use entry::EventEntry;
 pub use event_type::EventType;
 
-/// Create an event processor for the given event type
-pub fn create_processor(event_type: &str) -> Option<EventProcessor> {
-    match event_type {
-        "log" => Some(EventProcessor::Log),
-        "exception" => Some(EventProcessor::Exception),
-        "query" | "executed_query" => Some(EventProcessor::Query),
-        "application_log" => Some(EventProcessor::ApplicationLog),
-        "cache" => Some(EventProcessor::Cache),
-        "request" => Some(EventProcessor::Http),
-        // "table" removed - was an anti-pattern dispatcher
-        _ => None,
+/// Trait for event processing and rendering
+pub trait Event {
+    /// Process raw JSON payload into an EventEntry
+    fn process(payload: &Value) -> Result<EventEntry>
+    where
+        Self: Sized;
+
+    /// Render the event in the UI
+    fn render(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div;
+}
+
+/// Process an event with the appropriate processor
+pub fn process_event(event_type: &str, payload: &Value) -> Result<EventEntry> {
+    // Smart detection: if event_type is "table", check content.label to determine actual type
+    let actual_event_type = if event_type == "table" {
+        detect_table_event_type(payload)
+    } else {
+        event_type
+    };
+
+    match actual_event_type {
+        "log" => log::LogEvent::process(payload),
+        "exception" => exception::ExceptionEvent::process(payload),
+        "query" | "executed_query" => query::QueryEvent::process(payload),
+        "application_log" => application_log::ApplicationLogEvent::process(payload),
+        "cache" => cache::CacheEvent::process(payload),
+        "request" => http::HttpEvent::process(payload),
+        _ => Ok(EventEntry::new(
+            actual_event_type,
+            format!("Unknown Event: {}", actual_event_type),
+            "Unknown event type",
+            payload,
+        )),
     }
 }
 
-/// Get a custom UI renderer for the given event type
-pub fn get_ui_renderer(event_type: &str) -> Option<EventUIRenderer> {
-    match event_type {
-        "log" => Some(log::render_log_event),
-        "exception" => Some(exception::render_exception_event),
-        "query" | "executed_query" => Some(query::render_query_event),
-        "application_log" => Some(application_log::render_application_log_event),
-        "cache" => Some(cache::render_cache_event),
-        "request" => Some(http::render_http_event),
-        // "table" removed - was an anti-pattern dispatcher
-        _ => Some(render_unknown_event), // Fallback for unknown event types
+/// Render an event with the appropriate renderer
+pub fn render_event(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
+    match entry.event_type.as_str() {
+        "log" => log::LogEvent::render(entry, cx),
+        "exception" => exception::ExceptionEvent::render(entry, cx),
+        "query" | "executed_query" => query::QueryEvent::render(entry, cx),
+        "application_log" => application_log::ApplicationLogEvent::render(entry, cx),
+        "cache" => cache::CacheEvent::render(entry, cx),
+        "request" => http::HttpEvent::render(entry, cx),
+        _ => render_unknown_event(entry, cx),
     }
 }
 
 /// Fallback renderer for unknown event types
-fn render_unknown_event(
-    entry: &EventEntry,
-    _cx: &mut gpui::Context<crate::app::MyApp>,
-) -> gpui::Div {
+fn render_unknown_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
     use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
     use gpui::div;
     use gpui::prelude::*;
@@ -90,44 +106,22 @@ fn render_unknown_event(
         )
 }
 
-/// Process an event with the appropriate processor
-pub fn process_event(event_type: &str, payload: &Value) -> Result<EventEntry> {
-    // Smart detection: if event_type is "table", check content.label to determine actual type
-    let actual_event_type = if event_type == "table" {
-        detect_table_event_type(payload)
-    } else {
-        event_type.to_string()
-    };
-
-    match create_processor(&actual_event_type) {
-        Some(processor) => processor.process(payload),
-        None => Ok(EventEntry {
-            timestamp: String::new(),
-            label: format!("Unknown Event: {}", actual_event_type),
-            description: "Unknown event type".to_string(),
-            content_type: "json".to_string(),
-            event_type: actual_event_type,
-            raw_payload: payload.clone(),
-        }),
-    }
-}
-
 /// Detect the actual event type from table events based on content.label
-fn detect_table_event_type(payload: &Value) -> String {
+fn detect_table_event_type(payload: &Value) -> &str {
     if let Some(content) = payload.get("content") {
         if let Some(label) = content.get("label").and_then(|l| l.as_str()) {
             match label.to_lowercase().as_str() {
-                "http" | "request" => "request".to_string(),
-                "cache" => "cache".to_string(),
-                "query" | "database" => "query".to_string(),
-                "log" => "log".to_string(),
-                "exception" | "error" => "exception".to_string(),
-                _ => "request".to_string(), // Default to request for unknown labels
+                "http" | "request" => "request",
+                "cache" => "cache",
+                "query" | "database" => "query",
+                "log" => "log",
+                "exception" | "error" => "exception",
+                _ => "request", // Default to request for unknown labels
             }
         } else {
-            "request".to_string() // Default fallback
+            "request"
         }
     } else {
-        "request".to_string() // Default fallback
+        "request"
     }
 }

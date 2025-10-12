@@ -8,13 +8,10 @@ use gpui::{
     actions, div, px, size, App, Application, Bounds, ClipboardItem, IntoElement, Render,
     TitlebarOptions, UniformListScrollHandle, Window, WindowBounds, WindowOptions,
 };
-use std::cell::RefCell;
-use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::cell::RefCell;
 
 actions!(app, [Quit]);
 
@@ -24,14 +21,10 @@ pub struct MyApp {
     total_rows: usize,
     scroll_handle: UniformListScrollHandle,
     event_type_filters: HashSet<EventType>,
-    // Performance optimization: cached filtered events
-    filter_cache: RefCell<HashMap<u64, Arc<Vec<crate::events::EventEntry>>>>,
-    cache_generation: RefCell<u64>,
 }
 
 impl MyApp {
     pub fn new(payload_storage: Arc<EventStorage>) -> Self {
-        // Enable all event types by default - much simpler with enum
         let event_type_filters = EventType::all().into_iter().collect::<HashSet<_>>();
 
         Self {
@@ -40,15 +33,12 @@ impl MyApp {
             total_rows: 0,
             scroll_handle: UniformListScrollHandle::new(),
             event_type_filters,
-            filter_cache: RefCell::new(HashMap::new()),
-            cache_generation: RefCell::new(0),
         }
     }
 
     pub fn clear_events(&mut self, _cx: &mut Context<Self>) {
         self.payload_storage.clear_events();
         self.selected_row = Some(0);
-        self.invalidate_cache();
         _cx.notify();
     }
 
@@ -70,7 +60,6 @@ impl MyApp {
             self.event_type_filters.insert(event_type);
         }
         self.selected_row = Some(0);
-        self.invalidate_cache();
         cx.notify();
     }
 
@@ -78,75 +67,32 @@ impl MyApp {
         self.selected_row == Some(index)
     }
 
-    // Highly optimized cached filtering with minimal allocations
-    pub fn get_filtered_events(&self) -> Arc<Vec<crate::events::EventEntry>> {
-        let filter_hash = self.calculate_filter_hash();
-
-        if let Some(cached) = self.filter_cache.borrow().get(&filter_hash) {
-            return cached.clone();
-        }
-
-        // Cache miss - compute filtered events
+    pub fn get_filtered_events(&self) -> Vec<crate::events::EventEntry> {
         let all_events = self.payload_storage.get_events_optimized();
 
-        // Use iterator adaptors for better performance
-        let filtered: Vec<crate::events::EventEntry> = all_events
+        all_events
             .iter()
             .filter(|event| {
-                // Filter by event type - now with type safety!
                 if let Ok(event_type) = event.event_type.parse::<EventType>() {
                     self.event_type_filters.contains(&event_type)
                 } else {
-                    false // Filter out unknown event types
+                    false
                 }
             })
-            .map(|arc_event| (**arc_event).clone()) // Dereference Arc then clone
-            .collect();
-
-        let filtered_arc = Arc::new(filtered);
-
-        // Update cache
-        self.filter_cache
-            .borrow_mut()
-            .insert(filter_hash, filtered_arc.clone());
-
-        filtered_arc
-    }
-
-    fn calculate_filter_hash(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-
-        // Hash the event type filters
-        let mut filters: Vec<_> = self.event_type_filters.iter().collect();
-        filters.sort();
-        filters.hash(&mut hasher);
-
-        // Hash the storage generation to invalidate cache when events change
-        self.payload_storage.get_generation().hash(&mut hasher);
-
-        hasher.finish()
-    }
-
-    // Invalidate cache when events change
-    fn invalidate_cache(&self) {
-        *self.cache_generation.borrow_mut() += 1;
-        self.filter_cache.borrow_mut().clear();
+            .map(|arc_event| (**arc_event).clone())
+            .collect()
     }
 }
 
 impl Render for MyApp {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // Use cached filtered events to avoid expensive recomputation
         let events = self.get_filtered_events();
         self.total_rows = events.len();
 
-        // Ensure stable selection - cache the selected entry to prevent changes during mouse events
-        // This prevents header values from changing during mouse movement over the event list
         let selected_entry = if let Some(index) = self.selected_row {
             if index < events.len() {
                 events.get(index)
             } else {
-                // Handle case where events changed but selection index is stale
                 self.selected_row = if events.is_empty() { None } else { Some(0) };
                 events.first()
             }
@@ -159,7 +105,7 @@ impl Render for MyApp {
             .bg(background_color())
             .size_full()
             .child(render_event_list_panel(
-                events.as_ref(), // Pass slice instead of owned vector
+                &events,
                 &self.event_type_filters,
                 self.selected_row,
                 &self.scroll_handle,

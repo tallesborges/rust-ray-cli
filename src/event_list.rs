@@ -166,7 +166,7 @@ fn render_empty_state() -> Div {
 
 fn render_event_uniform_list(
     events: &[EventEntry], // Use slice to avoid cloning
-    selected_row: Option<usize>,
+    _selected_row: Option<usize>,
     scroll_handle: &UniformListScrollHandle,
     cx: &mut Context<crate::app::MyApp>,
 ) -> Div {

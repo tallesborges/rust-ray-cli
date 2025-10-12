@@ -1,74 +1,112 @@
-use crate::events::base::{extract_timestamp, EventEntry};
-use crate::events::processors::cache::process_cache_event;
-use crate::events::types::{CacheEvent, ProcessedEvent};
+use crate::events::{entry::EventEntry, Event};
 use crate::ui_components::{border_color, text_primary_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, rgb, Context, Div, FontWeight};
 use serde_json::Value;
 
-pub fn process(payload: &Value) -> Result<EventEntry> {
-    let mut entry = EventEntry {
-        timestamp: extract_timestamp(payload),
-        label: "cache".to_string(),
-        description: String::new(),
-        content_type: "custom_ui".to_string(),
-        event_type: "cache".to_string(),
-        raw_payload: payload.clone(),
-    };
+pub struct CacheEvent;
 
-    if let Some(content) = payload.get("content") {
-        // Process using the new architecture
-        let processed_event = process_cache_event(content)?;
-
-        // Set labels and descriptions based on processed event
-        if let ProcessedEvent::Cache(ref cache_event) = processed_event {
-            entry.label = format!("Cache: {}", cache_event.operation);
-            entry.description = match cache_event.operation.as_str() {
-                "Hit" => format!("Cache hit for: {}", cache_event.key),
-                "Missed" => format!("Cache miss for: {}", cache_event.key),
-                "Key written" => format!("Cache write: {}", cache_event.key),
-                "Forgotten" => format!("Cache key forgotten: {}", cache_event.key),
-                _ => format!("{} ({})", cache_event.operation, cache_event.key),
-            };
-        } else {
-            return Err(anyhow::anyhow!(
-                "Unexpected event type from cache processor"
-            ));
-        }
-    }
-
-    Ok(entry)
+#[derive(Clone, Debug)]
+struct CacheEventData {
+    operation: String,
+    key: String,
+    value: Option<Value>,
+    expiration_seconds: Option<u64>,
+    tags: Option<String>,
+    store: Option<String>,
+    ttl: Option<String>,
 }
 
-pub fn render_cache_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
-    if let Some(content) = entry.raw_payload.get("content") {
-        if let Ok(ProcessedEvent::Cache(cache_event)) = process_cache_event(content) {
-            div()
-                .flex()
-                .flex_col()
-                .gap_6()
-                .child(render_cache_header(&cache_event))
-                .child(render_cache_details(&cache_event))
-                .when(has_cache_metadata(&cache_event), |d| {
-                    d.child(render_cache_metadata(&cache_event))
-                })
-                .child(render_cache_origin_info(entry))
-        } else {
-            div().child("Invalid cache event data")
+impl Event for CacheEvent {
+    fn process(payload: &Value) -> Result<EventEntry> {
+        let content = payload
+            .get("content")
+            .ok_or_else(|| anyhow::anyhow!("Missing content in cache event"))?;
+
+        let cache_data = parse_cache_event(content)?;
+
+        let label = format!("Cache: {}", cache_data.operation);
+        let description = match cache_data.operation.as_str() {
+            "Hit" => format!("Cache hit for: {}", cache_data.key),
+            "Missed" => format!("Cache miss for: {}", cache_data.key),
+            "Key written" => format!("Cache write: {}", cache_data.key),
+            "Forgotten" => format!("Cache key forgotten: {}", cache_data.key),
+            _ => format!("{} ({})", cache_data.operation, cache_data.key),
+        };
+
+        Ok(EventEntry::new("cache", label, description, payload))
+    }
+
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+        if let Some(content) = entry.raw_payload.get("content") {
+            if let Ok(cache_data) = parse_cache_event(content) {
+                return div()
+                    .flex()
+                    .flex_col()
+                    .gap_6()
+                    .child(render_cache_header(&cache_data))
+                    .child(render_cache_details(&cache_data))
+                    .when(has_cache_metadata(&cache_data), |d| {
+                        d.child(render_cache_metadata(&cache_data))
+                    })
+                    .child(render_cache_origin_info(entry));
+            }
         }
-    } else {
         div().child("Invalid cache event data")
     }
 }
 
+fn parse_cache_event(content: &Value) -> Result<CacheEventData> {
+    let values = content
+        .get("values")
+        .ok_or_else(|| anyhow::anyhow!("Missing values in cache event"))?;
 
-fn render_cache_header(cache_event: &CacheEvent) -> Div {
-    let operation_color = match cache_event.operation.as_str() {
-        "Hit" => rgb(0x22c55e),         // Green for hits
-        "Missed" => rgb(0xf59e0b),      // Orange for misses
-        "Key written" => rgb(0x3b82f6), // Blue for writes
-        "Forgotten" => rgb(0xef4444),   // Red for deletions
+    let operation = values
+        .get("Event")
+        .and_then(Value::as_str)
+        .unwrap_or("Unknown")
+        .replace("<code>", "")
+        .replace("</code>", "");
+
+    let key = values
+        .get("Key")
+        .and_then(Value::as_str)
+        .unwrap_or("Unknown")
+        .to_string();
+
+    let value = values.get("Value").cloned();
+    let expiration_seconds = values.get("Expiration in seconds").and_then(Value::as_u64);
+    let tags = values
+        .get("Tags")
+        .and_then(Value::as_str)
+        .map(|s| s.to_string());
+    let store = values
+        .get("Store")
+        .and_then(Value::as_str)
+        .map(|s| s.to_string());
+    let ttl = values
+        .get("TTL")
+        .and_then(Value::as_str)
+        .map(|s| s.to_string());
+
+    Ok(CacheEventData {
+        operation,
+        key,
+        value,
+        expiration_seconds,
+        tags,
+        store,
+        ttl,
+    })
+}
+
+fn render_cache_header(cache_data: &CacheEventData) -> Div {
+    let operation_color = match cache_data.operation.as_str() {
+        "Hit" => rgb(0x22c55e),
+        "Missed" => rgb(0xf59e0b),
+        "Key written" => rgb(0x3b82f6),
+        "Forgotten" => rgb(0xef4444),
         _ => text_secondary_color().into(),
     };
 
@@ -82,7 +120,7 @@ fn render_cache_header(cache_event: &CacheEvent) -> Div {
                     .text_xs()
                     .font_weight(FontWeight::MEDIUM)
                     .text_color(operation_color)
-                    .child(cache_event.operation.clone()),
+                    .child(cache_data.operation.clone()),
             ),
         )
         .child(
@@ -91,24 +129,22 @@ fn render_cache_header(cache_event: &CacheEvent) -> Div {
                 .text_sm()
                 .font_family("monospace")
                 .text_color(text_primary_color())
-                .child(cache_event.key.clone()),
+                .child(cache_data.key.clone()),
         )
 }
 
-
-fn render_cache_details(cache_event: &CacheEvent) -> Div {
+fn render_cache_details(cache_data: &CacheEventData) -> Div {
     div()
         .flex()
         .flex_col()
         .gap_4()
-        .when(cache_event.value.is_some(), |d| {
-            d.child(render_cache_value_minimal(cache_event))
+        .when(cache_data.value.is_some(), |d| {
+            d.child(render_cache_value(cache_data))
         })
 }
 
-
-fn render_cache_value_minimal(cache_event: &CacheEvent) -> Div {
-    if let Some(ref value) = cache_event.value {
+fn render_cache_value(cache_data: &CacheEventData) -> Div {
+    if let Some(ref value) = cache_data.value {
         div()
             .flex()
             .flex_col()
@@ -144,16 +180,14 @@ fn render_cache_value_minimal(cache_event: &CacheEvent) -> Div {
     }
 }
 
-
-fn has_cache_metadata(cache_event: &CacheEvent) -> bool {
-    cache_event.expiration_seconds.is_some()
-        || cache_event.tags.is_some()
-        || cache_event.store.is_some()
-        || cache_event.ttl.is_some()
+fn has_cache_metadata(cache_data: &CacheEventData) -> bool {
+    cache_data.expiration_seconds.is_some()
+        || cache_data.tags.is_some()
+        || cache_data.store.is_some()
+        || cache_data.ttl.is_some()
 }
 
-
-fn render_cache_metadata(cache_event: &CacheEvent) -> Div {
+fn render_cache_metadata(cache_data: &CacheEventData) -> Div {
     div()
         .flex()
         .flex_col()
@@ -170,94 +204,64 @@ fn render_cache_metadata(cache_event: &CacheEvent) -> Div {
                 .flex()
                 .gap_6()
                 .text_xs()
-                .when(cache_event.expiration_seconds.is_some(), |d| {
-                    d.child(render_expiration_metric(cache_event))
+                .when(cache_data.expiration_seconds.is_some(), |d| {
+                    d.child(
+                        div()
+                            .flex()
+                            .gap_2()
+                            .child(div().text_color(text_secondary_color()).child("Expires:"))
+                            .child(
+                                div()
+                                    .font_family("monospace")
+                                    .text_color(text_primary_color())
+                                    .child(format_duration(cache_data.expiration_seconds.unwrap())),
+                            ),
+                    )
                 })
-                .when(cache_event.tags.is_some(), |d| {
-                    d.child(render_tags_metric(cache_event))
+                .when(cache_data.tags.is_some(), |d| {
+                    d.child(
+                        div()
+                            .flex()
+                            .gap_2()
+                            .child(div().text_color(text_secondary_color()).child("Tags:"))
+                            .child(
+                                div()
+                                    .font_family("monospace")
+                                    .text_color(text_primary_color())
+                                    .child(cache_data.tags.as_ref().unwrap().clone()),
+                            ),
+                    )
                 })
-                .when(cache_event.store.is_some(), |d| {
-                    d.child(render_store_metric(cache_event))
+                .when(cache_data.store.is_some(), |d| {
+                    d.child(
+                        div()
+                            .flex()
+                            .gap_2()
+                            .child(div().text_color(text_secondary_color()).child("Store:"))
+                            .child(
+                                div()
+                                    .font_family("monospace")
+                                    .text_color(text_primary_color())
+                                    .child(cache_data.store.as_ref().unwrap().clone()),
+                            ),
+                    )
                 })
-                .when(cache_event.ttl.is_some(), |d| {
-                    d.child(render_ttl_metric(cache_event))
+                .when(cache_data.ttl.is_some(), |d| {
+                    d.child(
+                        div()
+                            .flex()
+                            .gap_2()
+                            .child(div().text_color(text_secondary_color()).child("TTL:"))
+                            .child(
+                                div()
+                                    .font_family("monospace")
+                                    .text_color(text_primary_color())
+                                    .child(cache_data.ttl.as_ref().unwrap().clone()),
+                            ),
+                    )
                 }),
         )
 }
-
-
-fn render_expiration_metric(cache_event: &CacheEvent) -> Div {
-    if let Some(expiration) = cache_event.expiration_seconds {
-        let expiration_text = format_duration(expiration);
-        div()
-            .flex()
-            .gap_2()
-            .child(div().text_color(text_secondary_color()).child("Expires:"))
-            .child(
-                div()
-                    .font_family("monospace")
-                    .text_color(text_primary_color())
-                    .child(expiration_text),
-            )
-    } else {
-        div()
-    }
-}
-
-
-fn render_tags_metric(cache_event: &CacheEvent) -> Div {
-    if let Some(ref tags) = cache_event.tags {
-        div()
-            .flex()
-            .gap_2()
-            .child(div().text_color(text_secondary_color()).child("Tags:"))
-            .child(
-                div()
-                    .font_family("monospace")
-                    .text_color(text_primary_color())
-                    .child(tags.clone()),
-            )
-    } else {
-        div()
-    }
-}
-
-
-fn render_store_metric(cache_event: &CacheEvent) -> Div {
-    if let Some(ref store) = cache_event.store {
-        div()
-            .flex()
-            .gap_2()
-            .child(div().text_color(text_secondary_color()).child("Store:"))
-            .child(
-                div()
-                    .font_family("monospace")
-                    .text_color(text_primary_color())
-                    .child(store.clone()),
-            )
-    } else {
-        div()
-    }
-}
-
-
-fn render_ttl_metric(cache_event: &CacheEvent) -> Div {
-    if let Some(ref ttl) = cache_event.ttl {
-        div()
-            .flex()
-            .gap_2()
-            .child(div().text_color(text_secondary_color()).child("TTL:"))
-            .child(
-                div()
-                    .font_family("monospace")
-                    .text_color(text_primary_color())
-                    .child(ttl.clone()),
-            )
-    } else {
-        div()
-    }
-}
-
 
 fn format_duration(seconds: u64) -> String {
     if seconds > 3600 {
@@ -289,4 +293,3 @@ fn render_cache_origin_info(entry: &EventEntry) -> Div {
         div()
     }
 }
-
