@@ -1,5 +1,5 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{border_color, text_primary_color, text_secondary_color};
+use crate::ui::components::{origin_info, section_header, text_primary_color, text_secondary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
@@ -52,7 +52,7 @@ impl Event for ExceptionEvent {
             .gap_6()
             .child(render_exception_details(&content))
             .child(render_stack_trace(&content))
-            .child(render_origin_info(entry))
+            .child(render_origin_info_section(entry))
     }
 }
 
@@ -81,13 +81,7 @@ fn render_stack_trace(content: &Value) -> Div {
             .flex()
             .flex_col()
             .gap_3()
-            .child(
-                div()
-                    .text_xs()
-                    .text_color(text_secondary_color())
-                    .opacity(0.7)
-                    .child(format!("{} frames", frames.len())),
-            )
+            .child(section_header(format!("{} frames", frames.len())))
             .child(render_frames(frames))
     } else {
         div()
@@ -152,30 +146,17 @@ fn render_single_frame(index: usize, frame: &Value) -> Div {
         )
 }
 
-fn render_origin_info(entry: &EventEntry) -> Div {
+fn render_origin_info_section(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {
         let file = origin.get("file").and_then(|f| f.as_str()).unwrap_or("");
         let line = origin
             .get("line_number")
             .and_then(|l| l.as_u64())
             .unwrap_or(0);
-        let hostname = origin
-            .get("hostname")
-            .and_then(|h| h.as_str())
-            .unwrap_or("");
+        let hostname = origin.get("hostname").and_then(|h| h.as_str());
 
         if !file.is_empty() {
-            return div()
-                .pt_4()
-                .border_t_1()
-                .border_color(border_color())
-                .child(
-                    div()
-                        .text_xs()
-                        .text_color(text_secondary_color())
-                        .opacity(0.7)
-                        .child(format!("{file}:{line} • {hostname}")),
-                );
+            return origin_info(file.to_string(), line.to_string(), hostname.map(String::from));
         }
     }
     div()

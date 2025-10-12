@@ -1,7 +1,5 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{
-    border_color, text_monospace_color, text_primary_color, text_secondary_color,
-};
+use crate::ui::components::{metric_row, origin_info, text_monospace_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, StyledText};
@@ -56,7 +54,7 @@ impl Event for QueryEvent {
             .gap_6()
             .child(render_query_metrics(&content))
             .child(render_sql_query(&content))
-            .child(render_origin_info(entry))
+            .child(render_origin_info_section(entry))
     }
 }
 
@@ -81,23 +79,8 @@ fn render_query_metrics(content: &Value) -> Div {
         .flex_row()
         .gap_4()
         .text_xs()
-        .text_color(text_secondary_color())
-        .child(
-            div()
-                .flex()
-                .flex_row()
-                .gap_1()
-                .child(div().opacity(0.5).child("time:"))
-                .child(div().text_color(text_primary_color()).child(time_display)),
-        )
-        .child(
-            div()
-                .flex()
-                .flex_row()
-                .gap_1()
-                .child(div().opacity(0.5).child("connection:"))
-                .child(div().child(connection)),
-        )
+        .child(metric_row("time".to_string(), time_display))
+        .child(metric_row("connection".to_string(), connection))
 }
 
 fn render_sql_query(content: &Value) -> Div {
@@ -116,30 +99,17 @@ fn render_sql_query(content: &Value) -> Div {
     )
 }
 
-fn render_origin_info(entry: &EventEntry) -> Div {
+fn render_origin_info_section(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {
         let file = origin.get("file").and_then(|f| f.as_str()).unwrap_or("");
         let line = origin
             .get("line_number")
             .and_then(|l| l.as_u64())
             .unwrap_or(0);
-        let hostname = origin
-            .get("hostname")
-            .and_then(|h| h.as_str())
-            .unwrap_or("");
+        let hostname = origin.get("hostname").and_then(|h| h.as_str());
 
         if !file.is_empty() {
-            return div()
-                .pt_4()
-                .border_t_1()
-                .border_color(border_color())
-                .child(
-                    div()
-                        .text_xs()
-                        .text_color(text_secondary_color())
-                        .opacity(0.7)
-                        .child(format!("{file}:{line} • {hostname}")),
-                );
+            return origin_info(file.to_string(), line.to_string(), hostname.map(String::from));
         }
     }
     div()

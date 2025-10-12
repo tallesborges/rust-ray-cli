@@ -1,5 +1,7 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{border_color, text_primary_color, text_secondary_color};
+use crate::ui::components::{
+    border_color, code_box, metric_row, section_header, text_primary_color, text_secondary_color,
+};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, rgb, Context, Div, FontWeight};
@@ -193,13 +195,7 @@ fn render_headers(http_data: &HttpEventData) -> Div {
         .flex()
         .flex_col()
         .gap_2()
-        .child(
-            div()
-                .text_xs()
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(text_secondary_color())
-                .child("HEADERS"),
-        )
+        .child(section_header("HEADERS".to_string()))
         .child(
             div()
                 .flex()
@@ -247,29 +243,8 @@ fn render_body(http_data: &HttpEventData) -> Div {
             .flex()
             .flex_col()
             .gap_2()
-            .child(
-                div()
-                    .text_xs()
-                    .font_weight(FontWeight::MEDIUM)
-                    .text_color(text_secondary_color())
-                    .child("BODY"),
-            )
-            .child(
-                div()
-                    .p_4()
-                    .rounded_md()
-                    .bg(rgb(0x18181b))
-                    .border_1()
-                    .border_color(border_color())
-                    .child(
-                        div()
-                            .text_xs()
-                            .font_family("monospace")
-                            .text_color(text_primary_color())
-                            .max_w_full()
-                            .child(formatted_body),
-                    ),
-            )
+            .child(section_header("BODY".to_string()))
+            .child(code_box(div().max_w_full().child(formatted_body)))
     } else {
         div()
     }
@@ -280,71 +255,35 @@ fn render_performance_metrics(http_data: &HttpEventData) -> Div {
         .flex()
         .flex_col()
         .gap_2()
-        .child(
-            div()
-                .text_xs()
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(text_secondary_color())
-                .child("PERFORMANCE"),
-        )
+        .child(section_header("PERFORMANCE".to_string()))
         .child(
             div()
                 .flex()
                 .gap_6()
                 .text_xs()
                 .when(http_data.duration_seconds.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(div().text_color(text_secondary_color()).child("Duration:"))
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(format!(
-                                        "{}ms",
-                                        (http_data.duration_seconds.unwrap_or(0.0) * 1000.0)
-                                            as u64
-                                    )),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "Duration".to_string(),
+                        format!(
+                            "{}ms",
+                            (http_data.duration_seconds.unwrap_or(0.0) * 1000.0) as u64
+                        ),
+                    ))
                 })
                 .when(http_data.connection_time_seconds.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(
-                                div()
-                                    .text_color(text_secondary_color())
-                                    .child("Connection:"),
-                            )
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(format!(
-                                        "{}ms",
-                                        (http_data.connection_time_seconds.unwrap_or(0.0) * 1000.0)
-                                            as u64
-                                    )),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "Connection".to_string(),
+                        format!(
+                            "{}ms",
+                            (http_data.connection_time_seconds.unwrap_or(0.0) * 1000.0) as u64
+                        ),
+                    ))
                 })
                 .when(http_data.size_bytes.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(div().text_color(text_secondary_color()).child("Size:"))
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(format_bytes(http_data.size_bytes.unwrap_or(0))),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "Size".to_string(),
+                        format_bytes(http_data.size_bytes.unwrap_or(0)),
+                    ))
                 }),
         )
 }

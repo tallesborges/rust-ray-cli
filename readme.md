@@ -70,13 +70,24 @@ Configure Ray to send events to `localhost:23517`:
 ```
 src/
 ├── main.rs           # Application entry point
-├── app.rs            # GUI application logic
 ├── server.rs         # HTTP server implementation
-├── event_storage.rs  # Event storage and management
-├── events/           # Event processing modules
-│   ├── processors/   # JSON processors for each event type
-│   └── types.rs      # Event data structures
-└── ui_components.rs  # UI components and rendering
+├── storage.rs        # Event storage and management
+├── ui/               # UI modules
+│   ├── mod.rs        # UI module exports
+│   ├── app.rs        # GUI application logic
+│   ├── event_list.rs # Event list panel
+│   ├── event_details.rs # Event details panel
+│   └── components.rs # Shared UI components & helpers
+└── events/           # Event processing modules
+    ├── mod.rs        # Event trait + dispatch
+    ├── entry.rs      # EventEntry struct
+    ├── event_type.rs # EventType enum
+    ├── http.rs       # HTTP event (process + render)
+    ├── cache.rs      # Cache event (process + render)
+    ├── log.rs        # Log event (process + render)
+    ├── query.rs      # Query event (process + render)
+    ├── exception.rs  # Exception event (process + render)
+    └── application_log.rs # App log event (process + render)
 ```
 
 ## Performance

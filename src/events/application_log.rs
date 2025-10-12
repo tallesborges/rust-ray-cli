@@ -1,7 +1,5 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{
-    border_color, text_monospace_color, text_primary_color, text_secondary_color,
-};
+use crate::ui::components::{code_box, origin_info, section_header, text_primary_color};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
@@ -48,7 +46,7 @@ impl Event for ApplicationLogEvent {
             .gap_6()
             .child(render_app_log_content(&content))
             .child(render_app_log_context(&content))
-            .child(render_origin_info(entry))
+            .child(render_origin_info_section(entry))
     }
 }
 
@@ -57,32 +55,16 @@ fn render_app_log_content(content: &Value) -> Div {
     let level = content.get("level").and_then(Value::as_str).unwrap_or("Info");
     let channel = content.get("channel").and_then(Value::as_str);
 
+    let mut header_text = level.to_string();
+    if let Some(ch) = channel {
+        header_text.push_str(&format!(" • {}", ch));
+    }
+
     div()
         .flex()
         .flex_col()
         .gap_2()
-        .child(
-            div()
-                .flex()
-                .items_center()
-                .gap_4()
-                .child(
-                    div()
-                        .text_xs()
-                        .text_color(text_secondary_color())
-                        .opacity(0.7)
-                        .child(level.to_string()),
-                )
-                .child(if let Some(ch) = channel {
-                    div()
-                        .text_xs()
-                        .text_color(text_secondary_color())
-                        .opacity(0.5)
-                        .child(format!("• {}", ch))
-                } else {
-                    div()
-                }),
-        )
+        .child(section_header(header_text))
         .child(
             div()
                 .text_sm()
@@ -95,49 +77,29 @@ fn render_app_log_content(content: &Value) -> Div {
 fn render_app_log_context(content: &Value) -> Div {
     if let Some(context) = content.get("context") {
         if !context.is_null() {
+            let context_json = serde_json::to_string_pretty(context).unwrap_or_default();
             return div()
-                .pt_4()
-                .border_t_1()
-                .border_color(border_color())
-                .child(
-                    div()
-                        .font_family("monospace")
-                        .text_xs()
-                        .text_color(text_monospace_color())
-                        .opacity(0.8)
-                        .max_h_64()
-                        .overflow_hidden()
-                        .child(serde_json::to_string_pretty(context).unwrap_or_default()),
-                );
+                .flex()
+                .flex_col()
+                .gap_2()
+                .child(section_header("Context".to_string()))
+                .child(code_box(context_json));
         }
     }
     div()
 }
 
-fn render_origin_info(entry: &EventEntry) -> Div {
+fn render_origin_info_section(entry: &EventEntry) -> Div {
     if let Some(origin) = entry.raw_payload.get("origin") {
         let file = origin.get("file").and_then(|f| f.as_str()).unwrap_or("");
         let line = origin
             .get("line_number")
             .and_then(|l| l.as_u64())
             .unwrap_or(0);
-        let hostname = origin
-            .get("hostname")
-            .and_then(|h| h.as_str())
-            .unwrap_or("");
+        let hostname = origin.get("hostname").and_then(|h| h.as_str());
 
         if !file.is_empty() {
-            return div()
-                .pt_4()
-                .border_t_1()
-                .border_color(border_color())
-                .child(
-                    div()
-                        .text_xs()
-                        .text_color(text_secondary_color())
-                        .opacity(0.7)
-                        .child(format!("{file}:{line} • {hostname}")),
-                );
+            return origin_info(file.to_string(), line.to_string(), hostname.map(String::from));
         }
     }
     div()

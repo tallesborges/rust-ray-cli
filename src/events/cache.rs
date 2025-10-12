@@ -1,5 +1,7 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{border_color, text_primary_color, text_secondary_color};
+use crate::ui::components::{
+    code_box, metric_row, section_header, text_primary_color, text_secondary_color,
+};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, rgb, Context, Div, FontWeight};
@@ -149,32 +151,10 @@ fn render_cache_value(cache_data: &CacheEventData) -> Div {
             .flex()
             .flex_col()
             .gap_2()
-            .child(
-                div()
-                    .text_xs()
-                    .font_weight(FontWeight::MEDIUM)
-                    .text_color(text_secondary_color())
-                    .child("VALUE"),
-            )
-            .child(
-                div()
-                    .p_4()
-                    .rounded_md()
-                    .bg(rgb(0x18181b))
-                    .border_1()
-                    .border_color(border_color())
-                    .child(
-                        div()
-                            .text_xs()
-                            .font_family("monospace")
-                            .text_color(text_primary_color())
-                            .max_w_full()
-                            .child(
-                                serde_json::to_string_pretty(value)
-                                    .unwrap_or_else(|_| value.to_string()),
-                            ),
-                    ),
-            )
+            .child(section_header("VALUE".to_string()))
+            .child(code_box(div().max_w_full().child(
+                serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string()),
+            )))
     } else {
         div()
     }
@@ -192,73 +172,35 @@ fn render_cache_metadata(cache_data: &CacheEventData) -> Div {
         .flex()
         .flex_col()
         .gap_2()
-        .child(
-            div()
-                .text_xs()
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(text_secondary_color())
-                .child("METADATA"),
-        )
+        .child(section_header("METADATA".to_string()))
         .child(
             div()
                 .flex()
                 .gap_6()
                 .text_xs()
                 .when(cache_data.expiration_seconds.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(div().text_color(text_secondary_color()).child("Expires:"))
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(format_duration(cache_data.expiration_seconds.unwrap())),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "Expires".to_string(),
+                        format_duration(cache_data.expiration_seconds.unwrap()),
+                    ))
                 })
                 .when(cache_data.tags.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(div().text_color(text_secondary_color()).child("Tags:"))
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(cache_data.tags.as_ref().unwrap().clone()),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "Tags".to_string(),
+                        cache_data.tags.as_ref().unwrap().clone(),
+                    ))
                 })
                 .when(cache_data.store.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(div().text_color(text_secondary_color()).child("Store:"))
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(cache_data.store.as_ref().unwrap().clone()),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "Store".to_string(),
+                        cache_data.store.as_ref().unwrap().clone(),
+                    ))
                 })
                 .when(cache_data.ttl.is_some(), |d| {
-                    d.child(
-                        div()
-                            .flex()
-                            .gap_2()
-                            .child(div().text_color(text_secondary_color()).child("TTL:"))
-                            .child(
-                                div()
-                                    .font_family("monospace")
-                                    .text_color(text_primary_color())
-                                    .child(cache_data.ttl.as_ref().unwrap().clone()),
-                            ),
-                    )
+                    d.child(metric_row(
+                        "TTL".to_string(),
+                        cache_data.ttl.as_ref().unwrap().clone(),
+                    ))
                 }),
         )
 }

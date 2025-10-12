@@ -19,12 +19,14 @@ A native macOS debugging tool built with Rust and GPUI that receives and display
 ```
 ├── src/
 │   ├── main.rs          → Entry point, spawns server and GUI threads
-│   ├── app.rs           → GPUI application with virtual scrolling
 │   ├── server.rs        → HTTP server on port 23517
-│   ├── event_storage.rs → Arc-based shared event storage
-│   ├── event_list.rs    → Event list UI panel
-│   ├── event_details.rs → Event details UI panel
-│   ├── ui_components.rs → Shared UI components
+│   ├── storage.rs       → Arc-based shared event storage
+│   ├── ui/
+│   │   ├── mod.rs           → UI module exports
+│   │   ├── app.rs           → GPUI application with virtual scrolling
+│   │   ├── event_list.rs    → Event list UI panel
+│   │   ├── event_details.rs → Event details UI panel
+│   │   └── components.rs    → Shared UI components & helpers
 │   └── events/
 │       ├── mod.rs            → Event trait + dispatch
 │       ├── entry.rs          → EventEntry struct
@@ -42,9 +44,9 @@ A native macOS debugging tool built with Rust and GPUI that receives and display
 
 - Each event type is self-contained in its own module
 - All event processing and rendering in `src/events/`
-- GUI code split across `app.rs`, `event_list.rs`, `event_details.rs`
+- All UI code organized in `src/ui/` directory
 - Server code is exclusively in `src/server.rs`
-- Shared state management in `src/event_storage.rs`
+- Shared state management in `src/storage.rs`
 
 ## Development Patterns & Constraints
 
