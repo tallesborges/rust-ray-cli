@@ -4,11 +4,11 @@ mod server;
 mod storage;
 mod ui;
 
-use storage::EventStorage;
-use ui::app::run_app;
 use server::start_server;
 use std::sync::Arc;
+use storage::EventStorage;
 use tokio::sync::oneshot;
+use ui::app::run_app;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

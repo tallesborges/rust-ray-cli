@@ -1,5 +1,7 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{origin_info, section_header, text_primary_color, text_secondary_color};
+use crate::ui::components::{
+    origin_info, section_header, text_primary_color, text_secondary_color,
+};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
@@ -25,16 +27,10 @@ impl Event for ExceptionEvent {
             class.to_string()
         };
 
-        let truncated_description = if description.len() > 100 {
-            format!("{}...", &description[..97])
-        } else {
-            description
-        };
-
         Ok(EventEntry::new(
             "exception",
             "Exception",
-            truncated_description,
+            description,
             payload,
         ))
     }
@@ -61,18 +57,25 @@ fn render_exception_details(content: &Value) -> Div {
         .get("class")
         .and_then(|c| c.as_str())
         .unwrap_or("Exception");
-    let message = content.get("message").and_then(|m| m.as_str()).unwrap_or("");
+    let message = content
+        .get("message")
+        .and_then(|m| m.as_str())
+        .unwrap_or("");
 
-    div().flex().flex_col().gap_2().child(
-        div()
-            .text_sm()
-            .text_color(text_primary_color())
-            .child(if !message.is_empty() {
-                format!("{}: {}", class, message)
-            } else {
-                class.to_string()
-            }),
-    )
+    div()
+        .flex()
+        .flex_col()
+        .gap_2()
+        .child(
+            div()
+                .text_sm()
+                .text_color(text_primary_color())
+                .child(if !message.is_empty() {
+                    format!("{}: {}", class, message)
+                } else {
+                    class.to_string()
+                }),
+        )
 }
 
 fn render_stack_trace(content: &Value) -> Div {
@@ -156,7 +159,11 @@ fn render_origin_info_section(entry: &EventEntry) -> Div {
         let hostname = origin.get("hostname").and_then(|h| h.as_str());
 
         if !file.is_empty() {
-            return origin_info(file.to_string(), line.to_string(), hostname.map(String::from));
+            return origin_info(
+                file.to_string(),
+                line.to_string(),
+                hostname.map(String::from),
+            );
         }
     }
     div()

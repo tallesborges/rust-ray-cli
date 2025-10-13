@@ -51,8 +51,14 @@ impl Event for ApplicationLogEvent {
 }
 
 fn render_app_log_content(content: &Value) -> Div {
-    let value = content.get("value").and_then(Value::as_str).unwrap_or_default();
-    let level = content.get("level").and_then(Value::as_str).unwrap_or("Info");
+    let value = content
+        .get("value")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let level = content
+        .get("level")
+        .and_then(Value::as_str)
+        .unwrap_or("Info");
     let channel = content.get("channel").and_then(Value::as_str);
 
     let mut header_text = level.to_string();
@@ -99,7 +105,11 @@ fn render_origin_info_section(entry: &EventEntry) -> Div {
         let hostname = origin.get("hostname").and_then(|h| h.as_str());
 
         if !file.is_empty() {
-            return origin_info(file.to_string(), line.to_string(), hostname.map(String::from));
+            return origin_info(
+                file.to_string(),
+                line.to_string(),
+                hostname.map(String::from),
+            );
         }
     }
     div()

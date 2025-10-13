@@ -325,4 +325,3 @@ fn format_bytes(bytes: u64) -> String {
         format!("{:.1}{}", size, UNITS[unit_index])
     }
 }
-

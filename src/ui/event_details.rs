@@ -3,7 +3,6 @@ use crate::ui::components::{border_color, copy_button, text_primary_color, text_
 use gpui::prelude::*;
 use gpui::{div, Context, Div};
 
-
 pub struct EventDetailsProps<'a> {
     pub selected_entry: Option<&'a EventEntry>,
 }
@@ -104,13 +103,7 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) 
                         let payload_clone = entry.raw_payload.clone();
                         move |this, _event, _window, cx| {
                             let content = match serde_json::to_string_pretty(&payload_clone) {
-                                Ok(json) => {
-                                    if json.len() > 50000 {
-                                        format!("{}... [JSON truncated]", &json[..5000])
-                                    } else {
-                                        json
-                                    }
-                                }
+                                Ok(json) => json,
                                 Err(_) => "Invalid JSON".to_string(),
                             };
                             this.copy_to_clipboard(content, cx);

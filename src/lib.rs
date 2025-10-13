@@ -5,6 +5,6 @@ pub mod storage;
 pub mod ui;
 
 // Re-export commonly used items
-pub use storage::EventStorage;
 pub use events::{process_event, EventEntry};
+pub use storage::EventStorage;
 pub use ui::MyApp;

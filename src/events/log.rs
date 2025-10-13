@@ -1,5 +1,7 @@
 use crate::events::{entry::EventEntry, Event};
-use crate::ui::components::{origin_info, text_monospace_color, text_primary_color, text_secondary_color};
+use crate::ui::components::{
+    origin_info, text_monospace_color, text_primary_color, text_secondary_color,
+};
 use anyhow::Result;
 use gpui::prelude::*;
 use gpui::{div, Context, Div, InteractiveText, StyledText};
@@ -96,37 +98,42 @@ fn render_single_value(index: usize, value: &Value) -> Div {
                 .w_4()
                 .child(format!("{}", index + 1)),
         )
-        .child(div().flex_1().child(match value {
-            Value::String(s) => div().text_sm().text_color(text_primary_color()).child(s.clone()),
-            Value::Number(n) => div()
-                .text_sm()
-                .text_color(text_primary_color())
-                .child(n.to_string()),
-            Value::Bool(b) => div()
-                .text_sm()
-                .text_color(text_primary_color())
-                .child(b.to_string()),
-            Value::Null => div()
-                .text_sm()
-                .text_color(text_secondary_color())
-                .opacity(0.5)
-                .child("null"),
-            Value::Object(_) | Value::Array(_) => {
-                let formatted =
-                    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
-                div().py_2().child(
-                    div()
-                        .font_family("monospace")
-                        .text_xs()
-                        .text_color(text_monospace_color())
-                        .opacity(0.8)
-                        .child(InteractiveText::new(
-                            "complex-value",
-                            StyledText::new(formatted),
-                        )),
-                )
-            }
-        }))
+        .child(
+            div().flex_1().child(match value {
+                Value::String(s) => div()
+                    .text_sm()
+                    .text_color(text_primary_color())
+                    .child(s.clone()),
+                Value::Number(n) => div()
+                    .text_sm()
+                    .text_color(text_primary_color())
+                    .child(n.to_string()),
+                Value::Bool(b) => div()
+                    .text_sm()
+                    .text_color(text_primary_color())
+                    .child(b.to_string()),
+                Value::Null => div()
+                    .text_sm()
+                    .text_color(text_secondary_color())
+                    .opacity(0.5)
+                    .child("null"),
+                Value::Object(_) | Value::Array(_) => {
+                    let formatted =
+                        serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string());
+                    div().py_2().child(
+                        div()
+                            .font_family("monospace")
+                            .text_xs()
+                            .text_color(text_monospace_color())
+                            .opacity(0.8)
+                            .child(InteractiveText::new(
+                                "complex-value",
+                                StyledText::new(formatted),
+                            )),
+                    )
+                }
+            }),
+        )
 }
 
 fn render_origin_info_section(entry: &EventEntry) -> Div {
@@ -139,7 +146,11 @@ fn render_origin_info_section(entry: &EventEntry) -> Div {
         let hostname = origin.get("hostname").and_then(|h| h.as_str());
 
         if !file.is_empty() {
-            return origin_info(file.to_string(), line.to_string(), hostname.map(String::from));
+            return origin_info(
+                file.to_string(),
+                line.to_string(),
+                hostname.map(String::from),
+            );
         }
     }
     div()

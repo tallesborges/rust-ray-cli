@@ -1,6 +1,6 @@
 use anyhow::Result;
-use serde_json::Value;
 use gpui::{Context, Div};
+use serde_json::Value;
 
 pub mod application_log;
 pub mod cache;

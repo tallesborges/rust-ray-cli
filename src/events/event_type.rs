@@ -87,7 +87,10 @@ mod tests {
         assert_eq!("http".parse::<EventType>().unwrap(), EventType::Http);
         assert_eq!("request".parse::<EventType>().unwrap(), EventType::Http); // Legacy support
         assert_eq!("query".parse::<EventType>().unwrap(), EventType::Query);
-        assert_eq!("executed_query".parse::<EventType>().unwrap(), EventType::Query); // Legacy support
+        assert_eq!(
+            "executed_query".parse::<EventType>().unwrap(),
+            EventType::Query
+        ); // Legacy support
     }
 
     #[test]

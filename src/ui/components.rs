@@ -24,7 +24,6 @@ pub fn hover_color() -> gpui::Hsla {
     rgb(0x18181b).into() // zinc-900 - subtle hover
 }
 
-
 pub fn copy_button() -> Div {
     div()
         .text_xs()
@@ -63,7 +62,7 @@ pub fn origin_info(file: String, line: String, hostname: Option<String>) -> Div 
     if let Some(host) = hostname {
         text = format!("{text} • {host}");
     }
-    
+
     div()
         .flex()
         .items_center()
@@ -78,7 +77,11 @@ pub fn metric_row(label: String, value: impl IntoElement) -> Div {
     div()
         .flex()
         .gap_2()
-        .child(div().text_color(text_secondary_color()).child(format!("{label}:")))
+        .child(
+            div()
+                .text_color(text_secondary_color())
+                .child(format!("{label}:")),
+        )
         .child(
             div()
                 .font_family("monospace")

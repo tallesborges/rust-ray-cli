@@ -12,9 +12,9 @@ pub enum LogLevel {
 }
 
 pub struct EventStorage {
-    events: Mutex<Vec<Arc<EventEntry>>>,  // Use Arc to avoid cloning large entries
+    events: Mutex<Vec<Arc<EventEntry>>>, // Use Arc to avoid cloning large entries
     server_info: Mutex<String>,
-    generation: Mutex<u64>,  // Track changes for cache invalidation
+    generation: Mutex<u64>, // Track changes for cache invalidation
 }
 
 impl EventStorage {

@@ -1,5 +1,5 @@
-use crate::storage::EventStorage;
 use crate::events::EventType;
+use crate::storage::EventStorage;
 use crate::ui::components::background_color;
 use crate::ui::event_details::{render_event_details_panel, EventDetailsProps};
 use crate::ui::event_list::render_event_list_panel;
@@ -8,10 +8,10 @@ use gpui::{
     actions, div, px, size, App, Application, Bounds, ClipboardItem, IntoElement, Render,
     TitlebarOptions, UniformListScrollHandle, Window, WindowBounds, WindowOptions,
 };
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::cell::RefCell;
 
 actions!(app, [Quit]);
 
