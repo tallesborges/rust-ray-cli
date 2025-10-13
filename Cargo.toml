@@ -1,5 +1,5 @@
 [workspace.dependencies]
-serde = { version = "1.0.214", default-features = false, features = ["derive"] }
+serde = { version = "1.0.228", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 chrono = "0.4"
 gpui = { git = "https://github.com/zed-industries/zed" }
