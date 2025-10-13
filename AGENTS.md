@@ -38,7 +38,6 @@ A native macOS debugging tool built with Rust and GPUI that receives and display
 │       ├── exception.rs      → Exception event (process + render)
 │       └── application_log.rs → App log event (process + render)
 ├── tests/               → Integration and validation tests
-├── benches/            → Performance benchmarks
 └── target/             → Build artifacts (gitignored)
 ```
 
@@ -153,14 +152,3 @@ Target metrics:
 - Event processing: < 1ms per event
 - UI frame time: < 16ms (60 FPS)
 - Memory per event: < 1KB average
-
-## Recent Architecture Changes (October 2024)
-
-The codebase was refactored for simplicity and maintainability:
-- ✅ **Trait-based events**: Each event type implements the `Event` trait
-- ✅ **Self-contained modules**: Processing and rendering in the same file
-- ✅ **Removed complexity**: Eliminated separate processors directory
-- ✅ **Simplified caching**: Removed premature filter optimizations
-- ✅ **Cleaner code**: Reduced by ~50% while maintaining functionality
-
-See `REFACTORING_SUMMARY.md` for detailed documentation of changes.
