@@ -1,5 +1,5 @@
+use crate::app_state::AppState;
 use crate::events::EventType;
-use crate::storage::EventStorage;
 use crate::ui::components::background_color;
 use crate::ui::event_details::{render_event_details_panel, EventDetailsProps};
 use crate::ui::event_list::render_event_list_panel;
@@ -15,8 +15,9 @@ use std::sync::Arc;
 
 actions!(app, [Quit]);
 
+/// MyApp holds only UI-specific state.
+/// Shared application services (like payload_storage) are accessed via the global AppState.
 pub struct MyApp {
-    payload_storage: Arc<EventStorage>,
     selected_row: Option<usize>,
     total_rows: usize,
     scroll_handle: UniformListScrollHandle,
@@ -24,11 +25,10 @@ pub struct MyApp {
 }
 
 impl MyApp {
-    pub fn new(payload_storage: Arc<EventStorage>) -> Self {
+    pub fn new() -> Self {
         let event_type_filters = EventType::all().into_iter().collect::<HashSet<_>>();
 
         Self {
-            payload_storage,
             selected_row: Some(0),
             total_rows: 0,
             scroll_handle: UniformListScrollHandle::new(),
@@ -36,10 +36,11 @@ impl MyApp {
         }
     }
 
-    pub fn clear_events(&mut self, _cx: &mut Context<Self>) {
-        self.payload_storage.clear_events();
+    pub fn clear_events(&mut self, cx: &mut Context<Self>) {
+        let storage = cx.global::<AppState>().payload_storage.clone();
+        storage.clear_events();
         self.selected_row = Some(0);
-        _cx.notify();
+        cx.notify();
     }
 
     pub fn select_row(&mut self, index: usize, _cx: &mut Context<Self>) {
@@ -67,8 +68,9 @@ impl MyApp {
         self.selected_row == Some(index)
     }
 
-    pub fn get_filtered_events(&self) -> Vec<crate::events::EventEntry> {
-        let all_events = self.payload_storage.get_events_optimized();
+    pub fn get_filtered_events(&self, cx: &Context<Self>) -> Vec<crate::events::EventEntry> {
+        let storage = cx.global::<AppState>().payload_storage.clone();
+        let all_events = storage.get_events_optimized();
 
         all_events
             .iter()
@@ -86,7 +88,7 @@ impl MyApp {
 
 impl Render for MyApp {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let events = self.get_filtered_events();
+        let events = self.get_filtered_events(cx);
         self.total_rows = events.len();
 
         let selected_entry = if let Some(index) = self.selected_row {
@@ -119,13 +121,16 @@ impl Render for MyApp {
 }
 
 pub fn run_app(
-    payload_storage: Arc<EventStorage>,
+    payload_storage: Arc<crate::storage::EventStorage>,
     shutdown_tx: tokio::sync::oneshot::Sender<()>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Wrap shutdown_tx in a Rc<RefCell> to allow it to be shared across closures
     let shutdown_tx = Rc::new(RefCell::new(Some(shutdown_tx)));
 
     Application::new().run(move |cx: &mut App| {
+        // Initialize global AppState with shared services
+        cx.set_global(AppState::new(payload_storage.clone()));
+
         let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
         cx.open_window(
             WindowOptions {
@@ -138,23 +143,23 @@ pub fn run_app(
             },
             |window, cx| {
                 // Handle window close event
-                let close_storage = payload_storage.clone();
+                let storage = payload_storage.clone();
                 let close_tx = Rc::clone(&shutdown_tx);
                 window.on_window_should_close(cx, move |_window, _cx| {
-                    close_storage.info("App", "Window close requested");
+                    storage.info("App", "Window close requested");
 
                     // Send shutdown signal to server
                     if let Some(tx) = close_tx.borrow_mut().take() {
-                        close_storage.info("App", "Sending shutdown signal to server");
+                        storage.info("App", "Sending shutdown signal to server");
                         let _ = tx.send(());
                     }
 
                     // Force exit immediately
-                    close_storage.info("App", "Force exiting application");
+                    storage.info("App", "Force exiting application");
                     std::process::exit(0);
                 });
 
-                cx.new(|_cx| MyApp::new(payload_storage))
+                cx.new(|_cx| MyApp::new())
             },
         )
         .unwrap();

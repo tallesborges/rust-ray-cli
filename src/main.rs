@@ -1,4 +1,5 @@
 // main.rs
+mod app_state;
 mod events;
 mod server;
 mod storage;
