@@ -142,6 +142,9 @@ pub fn run_app(
                 ..Default::default()
             },
             |window, cx| {
+                // Create app entity
+                let app_entity = cx.new(|_cx| MyApp::new());
+
                 // Handle window close event
                 let storage = payload_storage.clone();
                 let close_tx = Rc::clone(&shutdown_tx);
@@ -159,7 +162,7 @@ pub fn run_app(
                     std::process::exit(0);
                 });
 
-                cx.new(|_cx| MyApp::new())
+                app_entity
             },
         )
         .unwrap();

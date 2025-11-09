@@ -14,7 +14,6 @@ pub enum LogLevel {
 pub struct EventStorage {
     events: Mutex<Vec<Arc<EventEntry>>>, // Use Arc to avoid cloning large entries
     server_info: Mutex<String>,
-    generation: Mutex<u64>, // Track changes for cache invalidation
 }
 
 impl EventStorage {
@@ -22,7 +21,6 @@ impl EventStorage {
         Self {
             events: Mutex::new(Vec::new()),
             server_info: Mutex::new(String::new()),
-            generation: Mutex::new(0),
         }
     }
 
@@ -97,10 +95,6 @@ impl EventStorage {
 
                 let mut events = self.events.lock().unwrap();
                 events.push(Arc::new(entry));
-
-                // Increment generation for cache invalidation
-                let mut generation = self.generation.lock().unwrap();
-                *generation += 1;
             }
             Err(e) => {
                 self.error(
@@ -120,10 +114,6 @@ impl EventStorage {
     pub fn clear_events(&self) {
         let mut events = self.events.lock().unwrap();
         events.clear();
-
-        // Increment generation for cache invalidation
-        let mut generation = self.generation.lock().unwrap();
-        *generation += 1;
     }
 }
 
