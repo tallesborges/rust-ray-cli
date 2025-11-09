@@ -40,7 +40,7 @@ impl Event for CacheEvent {
         Ok(EventEntry::new("cache", label, description, payload))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
         if let Some(content) = entry.raw_payload.get("content") {
             if let Ok(cache_data) = parse_cache_event(content) {
                 return div()

@@ -41,7 +41,7 @@ impl Event for QueryEvent {
         Ok(EventEntry::new("query", label, description, payload))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
         let content = entry
             .raw_payload
             .get("content")

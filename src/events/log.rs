@@ -46,7 +46,7 @@ impl Event for LogEvent {
         Ok(EventEntry::new("log", "Log", clean_description, payload))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
         div()
             .flex()
             .flex_col()

@@ -22,7 +22,7 @@ pub trait Event {
         Self: Sized;
 
     /// Render the event in the UI
-    fn render(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div;
+    fn render(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div;
 }
 
 /// Process an event with the appropriate processor
@@ -51,7 +51,7 @@ pub fn process_event(event_type: &str, payload: &Value) -> Result<EventEntry> {
 }
 
 /// Render an event with the appropriate renderer
-pub fn render_event(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
+pub fn render_event(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
     match entry.event_type.as_str() {
         "log" => log::LogEvent::render(entry, cx),
         "exception" => exception::ExceptionEvent::render(entry, cx),
@@ -64,7 +64,7 @@ pub fn render_event(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> D
 }
 
 /// Fallback renderer for unknown event types
-fn render_unknown_event(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
+fn render_unknown_event(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
     use crate::ui::components::{border_color, text_primary_color, text_secondary_color};
     use gpui::div;
     use gpui::prelude::*;

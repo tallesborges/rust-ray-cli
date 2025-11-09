@@ -9,7 +9,7 @@ pub struct EventDetailsProps<'a> {
 
 pub fn render_event_details_panel(
     props: EventDetailsProps,
-    cx: &mut Context<crate::ui::MyApp>,
+    cx: &mut Context<crate::app::MyApp>,
 ) -> Div {
     div()
         .flex_1()
@@ -23,7 +23,7 @@ pub fn render_event_details_panel(
         })
 }
 
-fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
+fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
     div()
         .flex()
         .flex_col()
@@ -33,7 +33,7 @@ fn render_event_details(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) 
         .child(render_event_content(entry, cx))
 }
 
-fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
+fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
     div()
         .flex()
         .flex_col()
@@ -57,7 +57,7 @@ fn render_event_header(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -
         )
 }
 
-fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::ui::MyApp>) -> Div {
+fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::app::MyApp>) -> Div {
     let value_clone = value.to_string();
     div()
         .flex()
@@ -84,7 +84,7 @@ fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::ui::My
         ))
 }
 
-fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::ui::MyApp>) -> Div {
+fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
     div()
         .flex()
         .flex_1()

@@ -33,7 +33,7 @@ impl Event for ApplicationLogEvent {
         ))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
         let content = entry
             .raw_payload
             .get("content")

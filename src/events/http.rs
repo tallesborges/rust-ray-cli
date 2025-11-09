@@ -56,7 +56,7 @@ impl Event for HttpEvent {
         Ok(EventEntry::new("request", label, description, payload))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::ui::MyApp>) -> Div {
+    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
         if let Some(content) = entry.raw_payload.get("content") {
             if let Ok(http_data) = parse_http_event(content) {
                 return div()
