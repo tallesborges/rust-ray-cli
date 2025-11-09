@@ -131,6 +131,20 @@ pub fn run_app(
         // Initialize global AppState with shared services
         cx.set_global(AppState::new(payload_storage.clone()));
 
+        // Register quit observer for graceful shutdown
+        let quit_storage = payload_storage.clone();
+        let quit_tx = Rc::clone(&shutdown_tx);
+        let _ = cx.on_app_quit(move |_cx| {
+            let storage = quit_storage.clone();
+            let tx = Rc::clone(&quit_tx);
+            async move {
+                storage.info("App", "App quitting, sending shutdown signal to server");
+                if let Some(tx_sender) = tx.borrow_mut().take() {
+                    let _ = tx_sender.send(());
+                }
+            }
+        });
+
         let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
         cx.open_window(
             WindowOptions {
@@ -147,19 +161,10 @@ pub fn run_app(
 
                 // Handle window close event
                 let storage = payload_storage.clone();
-                let close_tx = Rc::clone(&shutdown_tx);
-                window.on_window_should_close(cx, move |_window, _cx| {
+                window.on_window_should_close(cx, move |_window, cx| {
                     storage.info("App", "Window close requested");
-
-                    // Send shutdown signal to server
-                    if let Some(tx) = close_tx.borrow_mut().take() {
-                        storage.info("App", "Sending shutdown signal to server");
-                        let _ = tx.send(());
-                    }
-
-                    // Force exit immediately
-                    storage.info("App", "Force exiting application");
-                    std::process::exit(0);
+                    cx.quit();
+                    true
                 });
 
                 app_entity

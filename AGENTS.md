@@ -110,7 +110,7 @@ For reference, see existing event implementations like `http.rs`, `cache.rs`, or
 Before submitting changes:
 1. Run `cargo clippy` and fix all warnings
 2. Run `cargo test` and ensure all tests pass
-3. Run `cargo bench` if performance-critical changes were made
+3. Run `cargo bench` if performance‑critical changes were made
 4. Verify application launches and receives events correctly
 
 ## Git Workflow Essentials
@@ -131,8 +131,8 @@ Before submitting changes:
 
 - **Metal shaders**: Building requires Xcode to be installed; build will fail without it
 - **GPUI platform**: Code will not compile on Linux or Windows
-- **Event ordering**: Events are displayed in order received; no server-side reordering
-- **Memory growth**: With 10K+ events, memory usage increases; consider implementing event pruning for production
+- **Event ordering**: Events are displayed in order received; no server‑side reordering
+- **Memory growth**: With 10,000+ events, memory usage increases; consider implementing event pruning for production
 - **Nightly Rust**: Must use nightly toolchain; stable will not work
 - **JSON size limits**: Events larger than 10MB are rejected to prevent memory issues
 
