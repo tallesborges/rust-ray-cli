@@ -115,6 +115,10 @@ impl EventStorage {
         let mut events = self.events.lock().unwrap();
         events.clear();
     }
+
+    pub fn event_count(&self) -> usize {
+        self.events.lock().unwrap().len()
+    }
 }
 
 pub fn process_event(event: &Value, storage: &Arc<EventStorage>) {
