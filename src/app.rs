@@ -8,9 +8,7 @@ use gpui::{
     actions, div, px, size, App, Application, Bounds, ClipboardItem, IntoElement, Render,
     TitlebarOptions, UniformListScrollHandle, Window, WindowBounds, WindowOptions,
 };
-use std::cell::RefCell;
 use std::collections::HashSet;
-use std::rc::Rc;
 use std::sync::Arc;
 
 actions!(app, [Quit]);
@@ -22,10 +20,11 @@ pub struct MyApp {
     total_rows: usize,
     scroll_handle: UniformListScrollHandle,
     event_type_filters: HashSet<EventType>,
+    _watcher_task: gpui::Task<()>,
 }
 
 impl MyApp {
-    pub fn new() -> Self {
+    pub fn new(_window: &Window, _cx: &mut Context<Self>) -> Self {
         let event_type_filters = EventType::all().into_iter().collect::<HashSet<_>>();
 
         Self {
@@ -33,7 +32,30 @@ impl MyApp {
             total_rows: 0,
             scroll_handle: UniformListScrollHandle::new(),
             event_type_filters,
+            _watcher_task: gpui::Task::ready(()),
         }
+    }
+
+    pub fn start_watcher(&mut self, window: &Window, cx: &mut Context<Self>) {
+        let storage = cx.global::<AppState>().payload_storage.clone();
+
+        self._watcher_task = cx.spawn_in(window, async move |this, cx| {
+            let mut last_count = storage.event_count();
+
+            loop {
+                cx.background_executor()
+                    .timer(std::time::Duration::from_millis(150))
+                    .await;
+
+                let cur = storage.event_count();
+                if cur != last_count {
+                    last_count = cur;
+
+                    // Notify UI of changes
+                    this.update(cx, |_, cx| cx.notify()).ok();
+                }
+            }
+        });
     }
 
     pub fn clear_events(&mut self, cx: &mut Context<Self>) {
@@ -68,7 +90,7 @@ impl MyApp {
         self.selected_row == Some(index)
     }
 
-    pub fn get_filtered_events(&self, cx: &Context<Self>) -> Vec<crate::events::EventEntry> {
+    pub fn get_filtered_events(&self, cx: &mut Context<Self>) -> Vec<crate::events::EventEntry> {
         let storage = cx.global::<AppState>().payload_storage.clone();
         let all_events = storage.get_events_optimized();
 
@@ -122,31 +144,17 @@ impl Render for MyApp {
 
 pub fn run_app(
     payload_storage: Arc<crate::storage::EventStorage>,
-    shutdown_tx: tokio::sync::oneshot::Sender<()>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Wrap shutdown_tx in a Rc<RefCell> to allow it to be shared across closures
-    let shutdown_tx = Rc::new(RefCell::new(Some(shutdown_tx)));
-
+    payload_storage.info("App", "Before Application::new().run()");
+    
     Application::new().run(move |cx: &mut App| {
+        payload_storage.info("App", "Inside Application::new().run() closure");
+        
         // Initialize global AppState with shared services
         cx.set_global(AppState::new(payload_storage.clone()));
 
-        // Register quit observer for graceful shutdown
-        let quit_storage = payload_storage.clone();
-        let quit_tx = Rc::clone(&shutdown_tx);
-        let _ = cx.on_app_quit(move |_cx| {
-            let storage = quit_storage.clone();
-            let tx = Rc::clone(&quit_tx);
-            async move {
-                storage.info("App", "App quitting, sending shutdown signal to server");
-                if let Some(tx_sender) = tx.borrow_mut().take() {
-                    let _ = tx_sender.send(());
-                }
-            }
-        });
-
         let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
-        cx.open_window(
+        match cx.open_window(
             WindowOptions {
                 titlebar: Some(TitlebarOptions {
                     title: Some("Payload Processing Server".into()),
@@ -156,8 +164,9 @@ pub fn run_app(
                 ..Default::default()
             },
             |window, cx| {
-                // Create app entity
-                let app_entity = cx.new(|_cx| MyApp::new());
+                // Create app entity and start watcher
+                let app_entity = cx.new(|cx| MyApp::new(window, cx));
+                app_entity.update(cx, |app, cx| app.start_watcher(window, cx));
 
                 // Handle window close event
                 let storage = payload_storage.clone();
@@ -169,8 +178,10 @@ pub fn run_app(
 
                 app_entity
             },
-        )
-        .unwrap();
+        ) {
+            Ok(_) => payload_storage.info("App", "Window opened successfully"),
+            Err(e) => payload_storage.error("App", &format!("Failed to open window: {e}")),
+        }
 
         cx.activate(true);
     });
