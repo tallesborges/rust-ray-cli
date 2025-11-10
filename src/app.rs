@@ -146,10 +146,10 @@ pub fn run_app(
     payload_storage: Arc<crate::storage::EventStorage>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     payload_storage.info("App", "Before Application::new().run()");
-    
+
     Application::new().run(move |cx: &mut App| {
         payload_storage.info("App", "Inside Application::new().run() closure");
-        
+
         // Initialize global AppState with shared services
         cx.set_global(AppState::new(payload_storage.clone()));
 
