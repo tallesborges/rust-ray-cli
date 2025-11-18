@@ -208,7 +208,13 @@ fn render_event_uniform_list(
                                     .flex()
                                     .flex_row()
                                     .justify_between()
-                                    .child(render_event_label_optimized(&entry.label))
+                                    .items_center() // Align items vertically
+                                    .child(
+                                        div()
+                                            .flex_1() // Allow label to take available space
+                                            .min_w_0() // Allow shrinking below content size
+                                            .child(render_event_label_optimized(&entry.label)),
+                                    )
                                     .child(render_event_timestamp_optimized(&entry.timestamp)),
                             )
                             .child(render_event_description_optimized(&entry.description))
@@ -227,34 +233,28 @@ fn render_event_timestamp_optimized(timestamp: &str) -> Div {
         .text_xs()
         .text_color(text_secondary_color())
         .opacity(0.5)
+        .whitespace_nowrap()
+        .flex_none() // Prevent timestamp from shrinking
         .child(timestamp.to_string()) // Need to_string() for GPUI
 }
 
 fn render_event_label_optimized(label: &str) -> Div {
-    // OPTIMIZATION: Pre-compute truncation length to avoid runtime calculation
-    let display_label = if label.len() > 50 {
-        format!("{}...", &label[..47]) // Pre-computed truncation with ellipsis
-    } else {
-        label.to_string()
-    };
-
     div()
         .text_sm()
         .text_color(text_primary_color())
-        .child(display_label)
+        .whitespace_nowrap()
+        .overflow_hidden()
+        .text_ellipsis()
+        .child(label.to_string())
 }
 
 fn render_event_description_optimized(description: &str) -> Div {
-    // OPTIMIZATION: Pre-compute truncation with ellipsis for better UX
-    let display_desc = if description.len() > 80 {
-        format!("{}...", &description[..77]) // Only allocate when truncating
-    } else {
-        description.to_string()
-    };
-
     div()
         .text_xs()
         .text_color(text_secondary_color())
         .opacity(0.7)
-        .child(display_desc)
+        .whitespace_nowrap()
+        .overflow_hidden()
+        .text_ellipsis()
+        .child(description.to_string())
 }
