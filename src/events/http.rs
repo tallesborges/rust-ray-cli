@@ -56,7 +56,7 @@ impl Event for HttpEvent {
         Ok(EventEntry::new("request", label, description, payload))
     }
 
-    fn render(entry: &EventEntry, _cx: &mut Context<crate::app::MyApp>) -> Div {
+    fn render(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>) -> Div {
         if let Some(content) = entry.raw_payload.get("content") {
             if let Ok(http_data) = parse_http_event(content) {
                 return div()
@@ -64,7 +64,7 @@ impl Event for HttpEvent {
                     .flex_col()
                     .gap_6()
                     .child(render_http_header(&http_data))
-                    .child(render_http_details(&http_data))
+                    .child(render_http_details(&http_data, cx))
                     .when(
                         http_data.duration_seconds.is_some()
                             || http_data.connection_time_seconds.is_some()
@@ -177,7 +177,7 @@ fn render_http_header(http_data: &HttpEventData) -> Div {
         )
 }
 
-fn render_http_details(http_data: &HttpEventData) -> Div {
+fn render_http_details(http_data: &HttpEventData, cx: &mut Context<crate::app::MyApp>) -> Div {
     div()
         .flex()
         .flex_col()
@@ -186,7 +186,7 @@ fn render_http_details(http_data: &HttpEventData) -> Div {
             d.child(render_headers(http_data))
         })
         .when(http_data.body.is_some(), |d| {
-            d.child(render_body(http_data))
+            d.child(render_body(http_data, cx))
         })
 }
 
@@ -231,7 +231,7 @@ fn render_headers(http_data: &HttpEventData) -> Div {
         )
 }
 
-fn render_body(http_data: &HttpEventData) -> Div {
+fn render_body(http_data: &HttpEventData, cx: &mut Context<crate::app::MyApp>) -> Div {
     if let Some(body) = &http_data.body {
         let formatted_body = if http_data.content_type.as_deref() == Some("Json") {
             serde_json::to_string_pretty(body).unwrap_or_else(|_| body.to_string())
@@ -239,11 +239,26 @@ fn render_body(http_data: &HttpEventData) -> Div {
             body.to_string()
         };
 
+        let body_to_copy = formatted_body.clone();
+
         div()
             .flex()
             .flex_col()
             .gap_2()
-            .child(section_header("BODY".to_string()))
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap_2()
+                    .child(section_header("BODY".to_string()))
+                    .child(crate::ui::components::copy_button("copy body").on_mouse_down(
+                        gpui::MouseButton::Left,
+                        cx.listener(move |this, _event, _window, cx| {
+                            this.copy_to_clipboard(body_to_copy.clone(), cx);
+                        }),
+                    )),
+            )
             .child(code_box(div().max_w_full().child(formatted_body)))
     } else {
         div()

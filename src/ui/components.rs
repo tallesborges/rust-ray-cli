@@ -24,13 +24,26 @@ pub fn hover_color() -> gpui::Hsla {
     rgb(0x18181b).into() // zinc-900 - subtle hover
 }
 
-pub fn copy_button() -> Div {
+pub fn copy_button(label: impl Into<String>) -> Div {
     div()
+        .flex()
+        .items_center()
+        .px_2()
+        .py_1()
+        .rounded_md()
+        .bg(rgb(0x18181b))
+        .border_1()
+        .border_color(border_color())
         .text_xs()
         .text_color(text_secondary_color())
         .cursor_pointer()
-        .hover(|style| style.text_color(text_primary_color()))
-        .child("copy raw payload")
+        .hover(|style| {
+            style
+                .bg(rgb(0x27272a))
+                .text_color(text_primary_color())
+                .border_color(rgb(0x52525b)) // zinc-600
+        })
+        .child(label.into())
 }
 
 pub fn section_header(label: String) -> Div {

@@ -76,7 +76,7 @@ fn render_metadata_item(label: &str, value: &str, cx: &mut Context<crate::app::M
                 .text_color(text_primary_color())
                 .child(value.to_string()),
         )
-        .child(copy_button().on_mouse_down(
+        .child(copy_button("copy").on_mouse_down(
             gpui::MouseButton::Left,
             cx.listener(move |this, _event, _window, cx| {
                 this.copy_to_clipboard(value_clone.clone(), cx);
@@ -97,7 +97,7 @@ fn render_event_content(entry: &EventEntry, cx: &mut Context<crate::app::MyApp>)
                 .flex_row()
                 .items_center()
                 .gap_2()
-                .child(copy_button().on_mouse_down(
+                .child(copy_button("copy raw payload").on_mouse_down(
                     gpui::MouseButton::Left,
                     cx.listener({
                         let payload_clone = entry.raw_payload.clone();
