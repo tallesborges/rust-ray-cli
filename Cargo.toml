@@ -2,7 +2,7 @@
 serde = { version = "1.0.214", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 chrono = "0.4"
-gpui = "0.2.0"
+gpui = "0.2.2"
 
 [package]
 name = "rust-ray-cli"
