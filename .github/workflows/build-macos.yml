@@ -82,7 +82,7 @@ jobs:
         hdiutil create -volname "$APP_NAME" -srcfolder "$BUNDLE_DIR" -ov -format UDZO "$APP_NAME.dmg"
         
     - name: Upload App Bundle
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: RustRay-macOS
         path: |
